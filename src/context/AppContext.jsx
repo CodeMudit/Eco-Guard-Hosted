@@ -61,7 +61,6 @@ export const AppProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
         return localStorage.getItem("evoguard_theme") || "dark";
     });
-    const [compactMode, setCompactMode] = useState(false);
     const [toasts, setToasts] = useState([]);
 
     // Theme synchronization effect
@@ -163,9 +162,7 @@ export const AppProvider = ({ children }) => {
             reconnectionAttempts: 5,
         });
 
-        socket.on("connect", () => {
-            console.log("Connected to EvoGuard Socket.IO server:", API_URL);
-        });
+        socket.on("connect", () => {});
 
         socket.on("node:update", payload => {
             if (payload && Array.isArray(payload.nodes)) {
@@ -448,8 +445,6 @@ export const AppProvider = ({ children }) => {
                 addReportedSection,
                 theme,
                 setTheme,
-                compactMode,
-                setCompactMode,
                 toasts,
                 addToast,
                 removeToast,

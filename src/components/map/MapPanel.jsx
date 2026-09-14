@@ -4,12 +4,8 @@ import { useApp } from "../../context/AppContext";
 import { createNodeIcon } from "../../utils/leafletIcons";
 import { MapLegend } from "./MapLegend";
 import {
-  Layers,
-  RotateCcw,
   Maximize2,
   Minimize2,
-  ZoomIn,
-  ZoomOut,
   Radio,
   CloudSun,
   ShieldAlert,
@@ -101,7 +97,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         <MapController target={mapTarget} />
 
         {/* Hazard Zone Polygons */}
-        {hazards.map((hz) => (
+        {hazards.map((hz) => hz.coordinates && (
           <Polygon
             key={hz.id}
             positions={hz.coordinates}
@@ -141,7 +137,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         {node1 && (
           <Marker
             position={[node1.lat, node1.lng]}
-            icon={createNodeIcon("Node 1 — Hill Sector", "emerald", selectedNodeId === "node-1")}
+            icon={createNodeIcon("Node 1 — Hill Sector", selectedNodeId === "node-1")}
             eventHandlers={{
               click: () => {
                 setSelectedNodeId("node-1");
@@ -172,7 +168,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
 
                 <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between">
                   <span>Updated: {node1.lastUpdate}</span>
-                  <span className="text-emerald-400 font-semibold cursor-pointer" onClick={() => onSelectNode("node-1")}>
+                  <span className="text-emerald-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-1")}>
                     View Card ↓
                   </span>
                 </div>
@@ -185,7 +181,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         {node2 && (
           <Marker
             position={[node2.lat, node2.lng]}
-            icon={createNodeIcon("Node 2 — River Bank", "cyan", selectedNodeId === "node-2")}
+            icon={createNodeIcon("Node 2 — River Bank", selectedNodeId === "node-2")}
             eventHandlers={{
               click: () => {
                 setSelectedNodeId("node-2");
@@ -216,7 +212,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
 
                 <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between">
                   <span>Updated: {node2.lastUpdate}</span>
-                  <span className="text-cyan-400 font-semibold cursor-pointer" onClick={() => onSelectNode("node-2")}>
+                  <span className="text-cyan-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-2")}>
                     View Card ↓
                   </span>
                 </div>
@@ -229,7 +225,7 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         {apiData && (
           <Marker
             position={[apiData.lat, apiData.lng]}
-            icon={createNodeIcon("Overall API Area", "purple", false)}
+            icon={createNodeIcon("Overall API Area", false)}
           >
             <Popup>
               <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[210px]">

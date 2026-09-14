@@ -1,6 +1,6 @@
 import L from "leaflet";
 
-export const createNodeIcon = (label, colorClass = "emerald", isSelected = false) => {
+export const createNodeIcon = (label, isSelected = false) => {
   const isNode1 = label.includes("Node 1");
   const isNode2 = label.includes("Node 2");
   const isApi = label.includes("API");

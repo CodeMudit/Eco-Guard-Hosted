@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "../common/Modal";
-import { Radio, Battery, Wifi, Cpu, Clock, CheckCircle2, ShieldCheck, MapPin } from "lucide-react";
+import { Battery, Wifi, CheckCircle2 } from "lucide-react";
 
 export const NodeDetailModal = ({ isOpen, onClose, node }) => {
   if (!node) return null;

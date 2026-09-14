@@ -37,19 +37,3 @@ export const exportToCsv = (filename, rows) => {
   }
 };
 
-export const formatSensorValue = (val, unit = "") => {
-  if (val === undefined || val === null) return "N/A";
-  return `${val} ${unit}`.trim();
-};
-
-export const formatDate = (dateInput) => {
-  if (!dateInput) return "N/A";
-  const date = new Date(dateInput);
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};

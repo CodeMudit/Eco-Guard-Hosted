@@ -16,7 +16,16 @@ import { Modal } from "../components/common/Modal";
 import { FilePlus, ShieldAlert, Radio, CloudSun, Activity } from "lucide-react";
 
 export const HomeDashboard = () => {
-  const { nodes, selectedNodeId, setSelectedNodeId, addReportedSection, setActivePage, alerts } = useApp();
+  const {
+    nodes,
+    selectedNodeId,
+    setSelectedNodeId,
+    addReportedSection,
+    setActivePage,
+    alerts,
+    computedRisk,
+    apiData,
+  } = useApp();
 
   const [selectedAlertForModal, setSelectedAlertForModal] = useState(null);
   const [selectedNodeForModal, setSelectedNodeForModal] = useState(null);
@@ -48,7 +57,6 @@ export const HomeDashboard = () => {
     });
   };
 
-  const { computedRisk, apiData } = useApp();
 
   return (
     <div className="space-y-6 pb-12">

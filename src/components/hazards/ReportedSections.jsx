@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { Modal } from "../common/Modal";
-import { FileText, Clock, MapPin, ArrowRight, CheckCircle2, AlertCircle } from "lucide-react";
+import { FileText, MapPin, ArrowRight } from "lucide-react";
 
 export const ReportedSections = () => {
   const { reports, setActivePage, focusOnMap } = useApp();
@@ -90,15 +90,17 @@ export const ReportedSections = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button
-                onClick={() => {
-                  focusOnMap(selectedReport.coordinates[0], selectedReport.coordinates[1], 15);
-                  setSelectedReport(null);
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors"
-              >
-                Focus Map Location
-              </button>
+              {selectedReport.coordinates && (
+                <button
+                  onClick={() => {
+                    focusOnMap(selectedReport.coordinates[0], selectedReport.coordinates[1], 15);
+                    setSelectedReport(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors"
+                >
+                  Focus Map Location
+                </button>
+              )}
             </div>
           </div>
         </Modal>

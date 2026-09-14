@@ -53,7 +53,7 @@ export const HazardZonesPage = () => {
             </div>
 
             <button
-              onClick={() => focusOnMap(hz.center[0], hz.center[1], 15)}
+              onClick={() => hz.center && focusOnMap(hz.center[0], hz.center[1], 15)}
               className="w-full py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
             >
               <MapPin className="w-4 h-4 text-emerald-400" />

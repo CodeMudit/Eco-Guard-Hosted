@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal } from "../common/Modal";
 import { useApp } from "../../context/AppContext";
-import { AlertTriangle, MapPin, CheckCircle2, ShieldAlert, Radio, CloudSun } from "lucide-react";
+import { AlertTriangle, MapPin, CheckCircle2, Radio, CloudSun } from "lucide-react";
 
 export const AlertDetailModal = ({ isOpen, onClose, alert }) => {
   const { acknowledgeAlert, resolveAlert, focusOnMap } = useApp();

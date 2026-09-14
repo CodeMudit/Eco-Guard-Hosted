@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "../../context/AppContext";
-import { AlertTriangle, Radio, CloudSun, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Radio, CloudSun, ArrowUpRight } from "lucide-react";
 
 export const AlertCard = ({ alert, onSelectAlert }) => {
   const { focusOnMap } = useApp();

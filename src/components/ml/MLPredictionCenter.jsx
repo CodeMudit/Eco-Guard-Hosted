@@ -2,20 +2,7 @@ import React from "react";
 import { useApp } from "../../context/AppContext";
 import { RiskIndicator } from "./RiskIndicator";
 import { ModelInputBar } from "./ModelInputBar";
-import { getPredictionExplanation } from "../../utils/riskCalculator";
-import {
-  BrainCircuit,
-  Radio,
-  CloudSun,
-  History,
-  Sparkles,
-  ArrowRight,
-  ShieldAlert,
-  CheckCircle2,
-  FilePlus,
-  BellRing,
-  Info,
-} from "lucide-react";
+import { BrainCircuit } from "lucide-react";
 
 export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) => {
   const {
@@ -23,13 +10,7 @@ export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) =>
     mlCategory,
     setMlCategory,
     computedRisk,
-    nodes,
-    apiData,
-    setActivePage,
-    alerts,
   } = useApp();
-
-  const detectedEvents = Object.values(computedRisk.events || {});
 
   const activeCategoryData =
     currentMLPrediction.predictions[mlCategory] || currentMLPrediction.predictions.Overall;
@@ -48,13 +29,6 @@ export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) =>
     currentScore = computedRisk.airQualityScore;
     currentLevel = computedRisk.airQualityLevel;
   }
-
-  const dynamicExplanation = getPredictionExplanation(
-    mlCategory,
-    currentLevel,
-    nodes,
-    apiData
-  );
 
   return (
     <div className="p-6 rounded-3xl bg-slate-900/90 border border-emerald-500/40 shadow-2xl space-y-6">

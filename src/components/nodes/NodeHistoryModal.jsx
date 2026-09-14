@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Modal } from "../common/Modal";
 import { SensorHistoryChart } from "../charts/SensorHistoryChart";
-import { Radio, History, Download, Calendar } from "lucide-react";
+import { Radio, Download } from "lucide-react";
 import { exportToCsv } from "../../utils/formatters";
 import { generateHistoryData } from "../../data/mockHistory";
 

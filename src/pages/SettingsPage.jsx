@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import { Settings, Sliders, Moon, Sun, Save } from "lucide-react";
 
@@ -13,6 +13,11 @@ export const SettingsPage = () => {
   } = useApp();
 
   const [formThresholds, setFormThresholds] = useState(thresholds);
+
+  // Keep form in sync if thresholds are updated externally (e.g. from backend API on mount)
+  useEffect(() => {
+    setFormThresholds(thresholds);
+  }, [thresholds]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

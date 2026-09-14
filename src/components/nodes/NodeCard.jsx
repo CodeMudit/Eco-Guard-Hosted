@@ -4,6 +4,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { Radio, Battery, Wifi, Clock, ArrowRight } from "lucide-react";
 
 export const NodeCard = ({ node, isSelected, onViewDetails, onViewHistory }) => {
+  if (!node) return null;
   const isNode1 = node.id === "node-1";
 
   return (
@@ -141,8 +142,6 @@ export const NodeCard = ({ node, isSelected, onViewDetails, onViewHistory }) => 
                 min={0}
                 max={5}
                 safeRange={node.sensors.waterLevel.safeRange}
-                warningThreshold={1.5}
-                criticalThreshold={2.5}
                 warningThreshold={3.5}
                 criticalThreshold={4.5}
                 status={node.sensors.waterLevel.status}

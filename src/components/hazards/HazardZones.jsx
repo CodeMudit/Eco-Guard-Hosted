@@ -36,7 +36,7 @@ export const HazardZones = ({ onSelectHazard }) => {
               key={hz.id}
               onClick={() => {
                 setSelectedHazardId(hz.id);
-                focusOnMap(hz.center[0], hz.center[1], 14);
+                if (hz.center) focusOnMap(hz.center[0], hz.center[1], 14);
                 if (onSelectHazard) onSelectHazard(hz);
               }}
               className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-all cursor-pointer space-y-1 group"

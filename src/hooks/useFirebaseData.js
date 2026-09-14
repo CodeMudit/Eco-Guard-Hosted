@@ -94,8 +94,6 @@ const mapNode2Sensors = (rec = {}, defaultNode) => {
         waterLevel: {
             ...defaultNode.sensors.waterLevel,
             value: typeof distance === "number" ? parseFloat(distance.toFixed(2)) : defaultNode.sensors.waterLevel.value,
-            unit: "cm",
-            status: distance <= 35 ? "critical" : distance <= 50 ? "warning" : "normal",
             unit: "m",
             status: distance >= 4.5 ? "critical" : distance >= 3.5 ? "warning" : "normal",
         },
@@ -147,7 +145,6 @@ const toMlHistoryPoint = (rec, label) => {
     const mq3    = extractNum(rec.MQ3);
     const mq5    = extractNum(rec.MQ5);
     const dist   = extractNum(rec.distance);
-    const _vib    = extractNum(rec.vibration);
 
     const landslideRisk   = Math.min(99, Math.round(soil * 0.6 + (mq3 / 30)));
     const floodRisk       = Math.min(99, Math.round(dist * 20 + (mq3 / 50)));
@@ -158,11 +155,11 @@ const toMlHistoryPoint = (rec, label) => {
 };
 
 // Format a timestamp label for chart X-axis
-const makeTimeLabel = (rec, index, _total) => {
+const makeTimeLabel = (rec, index) => {
     if (rec.timestamp && typeof rec.timestamp === "number") {
         const d = new Date(rec.timestamp * 1000);
-        // If timestamp looks like seconds-since-epoch (> year 2000 in ms)
-        if (rec.timestamp > 1_000_000_000) {
+        // Unix epoch seconds after ~Sept 2020 — safely above any realistic Arduino millis() value
+        if (rec.timestamp > 1_600_000_000) {
             return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         }
         // Otherwise treat as seconds-since-boot → show index
@@ -262,7 +259,7 @@ export const useFirebaseData = () => {
                     }));
                 }
             } catch (err) {
-                console.error('Failed to fetch weather API', err);
+                // weather fetch failed silently
             }
         };
         fetchWeather();
@@ -277,7 +274,7 @@ export const useFirebaseData = () => {
 
         const sensorRef = ref(db, "sensorData");
 
-        const _unsubscribe = onValue(
+        onValue(
             sensorRef,
             (snapshot) => {
                 const raw = snapshot.val();
@@ -323,19 +320,19 @@ export const useFirebaseData = () => {
                 const limitHistory = (arr) => arr.slice(-24);
 
                 const node1History = limitHistory(
-                    nodeARecords.map((rec, i, arr) => toNode1HistoryPoint(rec, makeTimeLabel(rec, i, arr.length)))
+                    nodeARecords.map((rec, i) => toNode1HistoryPoint(rec, makeTimeLabel(rec, i)))
                 );
 
                 const node2History = limitHistory(
-                    nodeBRecords.map((rec, i, arr) => toNode2HistoryPoint(rec, makeTimeLabel(rec, i, arr.length)))
+                    nodeBRecords.map((rec, i) => toNode2HistoryPoint(rec, makeTimeLabel(rec, i)))
                 );
 
                 const apiHistory = limitHistory(
-                    allRecords.map((rec, i, arr) => toApiHistoryPoint(rec, makeTimeLabel(rec, i, arr.length)))
+                    allRecords.map((rec, i) => toApiHistoryPoint(rec, makeTimeLabel(rec, i)))
                 );
 
                 const mlRiskHistory = limitHistory(
-                    allRecords.map((rec, i, arr) => toMlHistoryPoint(rec, makeTimeLabel(rec, i, arr.length)))
+                    allRecords.map((rec, i) => toMlHistoryPoint(rec, makeTimeLabel(rec, i)))
                 );
 
                 setFirebaseHistory({ node1History, node2History, apiHistory, mlRiskHistory });
@@ -354,10 +351,8 @@ export const useFirebaseData = () => {
 
 
                 setIsFirebaseLoading(false);
-                console.log(`✅ Firebase: ${allRecords.length} records loaded (Node-A: ${nodeARecords.length}, Node-B: ${nodeBRecords.length})`);
             },
             (err) => {
-                console.warn("⚠️ Firebase sensorData stream error:", err.message);
                 setIsFirebaseLoading(false);
             }
         );
@@ -401,7 +396,7 @@ export const useFirebaseData = () => {
                     }));
                 }
             } catch (err) {
-                console.warn("⚠️ Failed to fetch live weather API data:", err);
+                // weather fetch failed silently
             }
         };
 

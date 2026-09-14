@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Activity,
   Trees,
+  Bell,
+  CloudSun,
 } from "lucide-react";
 
 export const Sidebar = () => {
@@ -22,7 +24,9 @@ export const Sidebar = () => {
     { id: "home", label: "Home", icon: LayoutDashboard },
     { id: "nodes", label: "Nodes", icon: Radio },
     { id: "ml-predictions", label: "ML Predictions", icon: BrainCircuit },
+    { id: "api-data", label: "API Data", icon: CloudSun },
     { id: "analytics", label: "Analytics", icon: LineChart },
+    { id: "alerts", label: "Alerts", icon: Bell },
     { id: "reports", label: "Reports", icon: FileText },
     { id: "hazards", label: "Hazard Zones", icon: ShieldAlert },
     { id: "settings", label: "Settings", icon: Settings },
@@ -78,16 +82,6 @@ export const Sidebar = () => {
               >
                 <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-emerald-400"}`} />
                 {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
-
-                {item.badge > 0 && (
-                  <span
-                    className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                      isActive ? "bg-white text-emerald-900" : "bg-red-500 text-white animate-pulse"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
               </button>
             );
           })}

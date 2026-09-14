@@ -6,7 +6,6 @@ import {
   RefreshCw,
   Play,
   Pause,
-  User,
   SlidersHorizontal,
   CheckCircle2,
   AlertTriangle,

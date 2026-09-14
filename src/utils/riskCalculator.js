@@ -20,7 +20,6 @@ export const calculateRisk = (nodes, apiData, thresholds) => {
   const ultrasonicDistanceCm2 = node2?.telemetry?.ultrasonicDistanceCm2;
   const waterRiseRateCm = node2?.telemetry?.waterRiseRateCm ?? 0;
   const ultrasonicRising = waterRiseRateCm > 0;
-  const ultrasonicCritical = typeof ultrasonicDistanceCm === "number" && ultrasonicDistanceCm <= 30;
 
   // Retrieve threshold settings
   const soilThresh = thresholds?.soilMoisture || 70;
@@ -51,7 +50,7 @@ export const calculateRisk = (nodes, apiData, thresholds) => {
       details: `Soil ${node2?.sensors?.soilMoisture?.value ?? "--"}% | SW-420 ${sw420} | Water rise ${waterRiseRateCm} cm/s | Ultrasonic ${ultrasonicDistanceCm ?? "--"} cm`,
     },
     flood: {
-      active: ultrasonicDistanceCm <= 35,
+      active: typeof ultrasonicDistanceCm === "number" && ultrasonicDistanceCm <= 35,
       title: "Flood Alert",
       details: `Distance (waterlevel1): ${ultrasonicDistanceCm ?? "--"} cm`,
     },
@@ -128,31 +127,4 @@ export const getRiskColor = (level) => {
     default:
       return { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", badge: "bg-emerald-500 text-white" };
   }
-};
-
-export const getPredictionExplanation = (category, riskLevel, nodes, apiData) => {
-  const node1 = nodes?.find((n) => n.id === "node-1");
-  const node2 = nodes?.find((n) => n.id === "node-2");
-
-  const soil = node1?.sensors?.soilMoisture?.value || 78;
-  const rain = node1?.sensors?.rainfall?.value || 42.6;
-  const water = node2?.sensors?.waterLevel?.value || 1.8;
-  const pm25 = node2?.sensors?.pm25?.value || 82;
-
-  if (category === "Landslide") {
-    return `Soil moisture at Node 1 is currently ${soil}% with a rainfall intensity of ${rain} mm/h. High pore water pressure combined with steep slope gradients in Zone A creates elevated risk of slumping.`;
-  }
-  if (category === "Flood") {
-    const riseRate = node2?.telemetry?.waterRiseRateCm ?? 0;
-    let extra = "";
-    if (riseRate >= 2) {
-      extra = ` A critical water rise rate of ${riseRate} cm/s has been detected.`;
-    }
-    return `River gauge at Node 2 registers water level at ${water} m.${extra} Upstream precipitation monitored via API feed indicates gradual accumulation near river embankments.`;
-  }
-  if (category === "AirQuality") {
-    return `Node 2 particulate sensor reports PM2.5 at ${pm25} µg/m³. Low wind vector is inhibiting atmospheric dispersion across River Bank basin.`;
-  }
-
-  return `Combined ML inference: Node 1 soil moisture (${soil}%) and rainfall (${rain} mm/h) drive high slope failure risk, while Node 2 water level (${water}m) maintains moderate valley flood vigilance.`;
 };

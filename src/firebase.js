@@ -26,14 +26,9 @@ if (isFirebaseConfigured) {
     try {
         app = initializeApp(firebaseConfig);
         db = getDatabase(app);
-        console.log("✅ Firebase Realtime Database connected.");
     } catch (err) {
-        console.warn("⚠️ Firebase init failed:", err.message);
+        // Firebase init failed — app will fall back to mock data
     }
-} else {
-    console.info(
-        "ℹ️ Firebase not configured. Fill in VITE_FIREBASE_* vars in .env.local to enable live data."
-    );
 }
 
 export { db, isFirebaseConfigured };
