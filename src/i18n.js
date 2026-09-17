@@ -11,7 +11,19 @@ const resources = {
       "AI Engine": "AI Engine",
       "Notify Admin": "Notify District Admin",
       "Landslide Risk": "Landslide Risk",
-      "Flood Risk": "Flood Risk"
+      "Flood Risk": "Flood Risk",
+      "EXTREME": "EXTREME",
+      "HIGH": "HIGH",
+      "MODERATE": "MODERATE",
+      "LOW": "LOW",
+      "Home": "Home",
+      "Nodes": "Nodes",
+      "ML Predictions": "ML Predictions",
+      "API Data": "API Data",
+      "Analytics": "Analytics",
+      "Hazard Zones": "Hazard Zones",
+      "Settings": "Settings",
+      "System Online": "System Online"
     }
   },
   hi: {
@@ -31,7 +43,11 @@ const resources = {
       "Analytics": "विश्लेषिकी",
       "Hazard Zones": "खतरे वाले क्षेत्र",
       "Settings": "सेटिंग्स",
-      "System Online": "सिस्टम ऑनलाइन"
+      "System Online": "सिस्टम ऑनलाइन",
+      "EXTREME": "अत्यधिक",
+      "HIGH": "उच्च",
+      "MODERATE": "मध्यम",
+      "LOW": "निम्न"
     }
   },
   as: {
@@ -51,7 +67,11 @@ const resources = {
       "Analytics": "বিশ্লেষণ",
       "Hazard Zones": "বিপদজনক অঞ্চল",
       "Settings": "ছেটিংছ",
-      "System Online": "চিষ্টেম অনলাইন"
+      "System Online": "চিষ্টেম অনলাইন",
+      "EXTREME": "চৰম",
+      "HIGH": "উচ্চ",
+      "MODERATE": "মজলীয়া",
+      "LOW": "নিম্ন"
     }
   }
 };

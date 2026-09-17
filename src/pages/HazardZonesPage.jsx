@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
 import { ShieldAlert, MapPin } from "lucide-react";
+import { Terrain3DViewer } from "../components/map/Terrain3DViewer";
 
 export const HazardZonesPage = () => {
   const { hazards, focusOnMap } = useApp();
@@ -61,6 +62,11 @@ export const HazardZonesPage = () => {
             </button>
           </div>
         ))}
+      </div>
+
+      {/* Terrain 3D Viewer Section */}
+      <div className="grid grid-cols-1 gap-6">
+         <Terrain3DViewer hazardZone={hazards[0]} />
       </div>
     </div>
   );

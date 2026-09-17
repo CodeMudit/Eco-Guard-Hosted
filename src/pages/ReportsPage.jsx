@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from "react";
 import localforage from "localforage";
+import imageCompression from "browser-image-compression";
 import { useApp } from "../context/AppContext";
 import { exportToCsv } from "../utils/formatters";
 import { FileText, Download, Printer, MapPin, Camera, UploadCloud, WifiOff, RefreshCw } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { createNodeIcon } from "../utils/leafletIcons";
+
+const LocationMarker = ({ setForm }) => {
+  const [position, setPosition] = useState(null);
+  
+  useMapEvents({
+    click(e) {
+      setPosition(e.latlng);
+      setForm(f => ({ ...f, coordinates: [e.latlng.lat, e.latlng.lng], location: `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}` }));
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={position} icon={createNodeIcon("Selected Location", true)}></Marker>
+  );
+};
 
 export const ReportsPage = () => {
   const { reports, addReportedSection, updateReportStatus, addToast, alerts } = useApp();
@@ -90,14 +108,30 @@ export const ReportsPage = () => {
      }
   };
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
       const file = e.target.files[0];
       if (file) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-              setForm(f => ({ ...f, photo: reader.result }));
-          };
-          reader.readAsDataURL(file);
+          try {
+              let compressedFile = file;
+              // Only compress if it's an image
+              if (file.type.startsWith('image/')) {
+                  const options = {
+                      maxSizeMB: 1,
+                      maxWidthOrHeight: 1280,
+                      useWebWorker: true
+                  };
+                  compressedFile = await imageCompression(file, options);
+              }
+              
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                  setForm(f => ({ ...f, photo: reader.result }));
+              };
+              reader.readAsDataURL(compressedFile);
+          } catch (error) {
+              console.error("Compression error:", error);
+              addToast("Upload Failed", "Failed to compress media file.", "error");
+          }
       }
   };
 
@@ -188,11 +222,18 @@ export const ReportsPage = () => {
 
                <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1">Location / GPS</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mb-2">
                      <input type="text" required placeholder="Description or coords..." value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none" />
                      <button type="button" onClick={handleCaptureGPS} className="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs text-slate-300 flex items-center gap-1 shrink-0">
                         <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {isLocating ? 'Locating...' : 'GPS'}
                      </button>
+                  </div>
+                  <div className="h-32 w-full rounded-xl overflow-hidden border border-slate-800 relative z-0">
+                     <MapContainer center={[25.268, 91.738]} zoom={11} scrollWheelZoom={false} className="h-full w-full">
+                        <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
+                        <LocationMarker setForm={setForm} />
+                     </MapContainer>
+                     <div className="absolute top-1 left-1 z-[1000] bg-slate-900/80 backdrop-blur px-2 py-1 rounded text-[10px] text-slate-300 pointer-events-none">Click map to drop pin</div>
                   </div>
                </div>
 
