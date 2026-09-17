@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from "react-leaflet";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, LayersControl, GeoJSON, LayerGroup, Rectangle } from "react-leaflet";
 import { useApp } from "../../context/AppContext";
 import { createNodeIcon } from "../../utils/leafletIcons";
+import { LiveWindLayer } from "./LiveWindLayer";
 import { MapLegend } from "./MapLegend";
+import { HeatmapLayer } from "./HeatmapLayer";
+import { nerStateBoundaries, nerRoadNetwork, nerRiskHeatmapPoints, nerVillages } from "../../data/mockGeoData";
+import { historicalLandslides } from "../../data/mockHistoricalLandslides";
 import {
   Maximize2,
   Minimize2,
@@ -33,25 +38,43 @@ const MapController = ({ target }) => {
   return null;
 };
 
-export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
-  const { nodes, apiData, hazards, selectedNodeId, mapTarget, setSelectedNodeId, setSelectedHazardId } = useApp();
+// Heatmap Overlay (using actual leaflet.heat wrapper)
+// Replaced with HeatmapLayer component.
 
-  const [mapTile, setMapTile] = useState("satellite"); // satellite
+export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
+  const { nodes, apiData, hazards, selectedNodeId, mapTarget, setSelectedNodeId, setSelectedHazardId, riskScore, reports } = useApp();
+
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   const defaultCenter = [25.268, 91.738];
   const defaultZoom = 13;
 
-  const tileUrls = {
-    satellite: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-  };
-
-  const tileAttributions = {
-    satellite: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
-  };
-
   const node1 = nodes.find((n) => n.id === "node-1") || nodes[0];
   const node2 = nodes.find((n) => n.id === "node-2") || nodes[1];
+
+  const adminStyle = {
+    color: "#cbd5e1",
+    weight: 2,
+    opacity: 0.8,
+    fillOpacity: 0.1,
+    dashArray: "5, 5"
+  };
+
+  const roadStyle = (feature) => {
+    return {
+      color: feature.properties.status === "Open" ? "#10b981" : feature.properties.status === "Partially Blocked" ? "#f59e0b" : "#ef4444",
+      weight: 3,
+      opacity: 0.8
+    };
+  };
+
+  const villageIcon = L.divIcon({
+    className: "bg-transparent",
+    html: `<div class="w-2.5 h-2.5 bg-blue-500 border border-white rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]"></div>`,
+    iconSize: [10, 10],
+    iconAnchor: [5, 5]
+  });
 
   return (
     <div
@@ -60,19 +83,16 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
       }`}
     >
       {/* Map Header Controls Bar */}
-      <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2 pointer-events-auto bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-2xl">
-        {/* Tile Selector */}
-        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
-          <button
-            type="button"
-            onClick={() => setMapTile("satellite")}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              mapTile === "satellite" ? "bg-emerald-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Satellite
-          </button>
-        </div>
+      <div className="absolute top-3 right-12 z-[1000] flex items-center gap-2 pointer-events-auto bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-2xl">
+        <button
+          type="button"
+          onClick={() => setShowComparison(!showComparison)}
+          className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${
+            showComparison ? "bg-amber-600 text-white shadow-md" : "bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700"
+          }`}
+        >
+          {showComparison ? "Exit Comparison" : "Satellite Comparison"}
+        </button>
 
         {/* Fullscreen Toggle */}
         <button
@@ -85,171 +105,278 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         </button>
       </div>
 
-      {/* Leaflet React Container */}
       <MapContainer
         center={defaultCenter}
         zoom={defaultZoom}
         scrollWheelZoom={true}
         zoomControl={false}
-        className="w-full h-full z-0"
+        className="w-full h-full z-0 font-sans"
       >
-        <TileLayer key={mapTile} url={tileUrls[mapTile]} attribution={tileAttributions[mapTile]} />
         <MapController target={mapTarget} />
 
-        {/* Hazard Zone Polygons */}
-        {hazards.map((hz) => hz.coordinates && (
-          <Polygon
-            key={hz.id}
-            positions={hz.coordinates}
-            pathOptions={{
-              color: hz.color,
-              fillColor: hz.color,
-              fillOpacity: 0.25,
-              weight: 2,
-              dashArray: "4, 6",
-            }}
-            eventHandlers={{
-              click: () => {
-                setSelectedHazardId(hz.id);
-                if (onSelectHazard) onSelectHazard(hz);
-              },
-            }}
-          >
-            <Popup>
-              <div className="p-2 space-y-1.5 text-xs text-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-1">
-                  <span className="font-bold text-white flex items-center gap-1">
-                    <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
-                    {hz.name}
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">
-                    {hz.riskLevel}
-                  </span>
-                </div>
-                <p className="text-slate-300 text-[11px]">{hz.description}</p>
-                <p className="text-[10px] text-slate-400">Vulnerability: {hz.vulnerabilityScore}</p>
-              </div>
-            </Popup>
-          </Polygon>
-        ))}
+        <LayersControl position="topright">
+          {/* Base Layers */}
+          <LayersControl.BaseLayer checked name="Satellite Imagery (ISRO/Bhuvan-style feed)">
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Terrain / OSM Base">
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution="&copy; OpenStreetMap contributors"
+            />
+          </LayersControl.BaseLayer>
+          <LayersControl.BaseLayer name="Administrative (Dark)">
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution="&copy; <a href='https://carto.com/'>CARTO</a>"
+            />
+          </LayersControl.BaseLayer>
 
-        {/* Node 1 Marker */}
-        {node1 && (
-          <Marker
-            position={[node1.lat, node1.lng]}
-            icon={createNodeIcon("Node 1 — Hill Sector", selectedNodeId === "node-1")}
-            eventHandlers={{
-              click: () => {
-                setSelectedNodeId("node-1");
-                if (onSelectNode) onSelectNode("node-1");
-              },
-            }}
-          >
-            <Popup>
-              <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[200px]">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Radio className="w-4 h-4 text-emerald-400" />
-                    Node 1 — Hill Sector
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
-                    Online
-                  </span>
-                </div>
+          {/* Overlays */}
+          <LayersControl.Overlay checked name="State/District Boundaries">
+            <GeoJSON data={nerStateBoundaries} style={adminStyle} />
+          </LayersControl.Overlay>
 
-                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
-                  <div>Comm: <span className="font-semibold text-teal-400">LoRa</span></div>
-                  <div>Battery: <span className="font-semibold text-white">{node1.battery}%</span></div>
-                  <div>Temp: <span className="font-semibold text-white">{node1.sensors.temperature.value} °C</span></div>
-                  <div>Humidity: <span className="font-semibold text-white">{node1.sensors.humidity.value} %</span></div>
-                  <div>Soil Moist: <span className="font-semibold text-amber-400">{node1.sensors.soilMoisture.value} %</span></div>
-                  <div>Rainfall: <span className="font-semibold text-red-400">{node1.sensors.rainfall.value} mm/h</span></div>
-                </div>
+          <LayersControl.Overlay checked name="Road Network">
+            <GeoJSON data={nerRoadNetwork} style={roadStyle} />
+          </LayersControl.Overlay>
 
-                <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between">
-                  <span>Updated: {node1.lastUpdate}</span>
-                  <span className="text-emerald-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-1")}>
-                    View Card ↓
-                  </span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+          <LayersControl.Overlay checked name="AI Risk Heatmap">
+            <HeatmapLayer points={nerRiskHeatmapPoints} />
+          </LayersControl.Overlay>
 
-        {/* Node 2 Marker */}
-        {node2 && (
-          <Marker
-            position={[node2.lat, node2.lng]}
-            icon={createNodeIcon("Node 2 — River Bank", selectedNodeId === "node-2")}
-            eventHandlers={{
-              click: () => {
-                setSelectedNodeId("node-2");
-                if (onSelectNode) onSelectNode("node-2");
-              },
-            }}
-          >
-            <Popup>
-              <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[200px]">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Radio className="w-4 h-4 text-cyan-400" />
-                    Node 2 — River Bank
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
-                    Online
-                  </span>
-                </div>
+          <LayersControl.Overlay checked name="Village Infrastructure">
+            <LayerGroup>
+               {nerVillages.features.map((v, i) => (
+                  <Marker key={i} position={[v.geometry.coordinates[1], v.geometry.coordinates[0]]} icon={villageIcon}>
+                     <Popup>
+                        <div className="p-2 text-xs">
+                           <div className="font-bold text-slate-800">{v.properties.name}</div>
+                           <div className="text-slate-600">Population: {v.properties.population}</div>
+                           <div className={`font-bold mt-1 ${v.properties.risk === 'High' || v.properties.risk === 'Extreme' ? 'text-red-500' : 'text-amber-500'}`}>
+                              Risk: {v.properties.risk}
+                           </div>
+                        </div>
+                     </Popup>
+                  </Marker>
+               ))}
+            </LayerGroup>
+          </LayersControl.Overlay>
 
-                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
-                  <div>Comm: <span className="font-semibold text-cyan-400">GSM</span></div>
-                  <div>Battery: <span className="font-semibold text-white">{node2.battery}%</span></div>
-                  <div>Temp: <span className="font-semibold text-white">{node2.sensors.temperature.value} °C</span></div>
-                  <div>PM2.5: <span className="font-semibold text-amber-400">{node2.sensors.pm25.value} µg/m³</span></div>
-                  <div>Water Level: <span className="font-semibold text-amber-400">{node2.sensors.waterLevel.value} m</span></div>
-                  <div>Humidity: <span className="font-semibold text-white">{node2.sensors.humidity.value} %</span></div>
-                </div>
+          <LayersControl.Overlay checked name="Hazard Zones">
+            <LayerGroup>
+              {hazards.map((hz) => hz.coordinates && (
+                <Polygon
+                  key={hz.id}
+                  positions={hz.coordinates}
+                  pathOptions={{
+                    color: hz.color,
+                    fillColor: hz.color,
+                    fillOpacity: 0.25,
+                    weight: 2,
+                    dashArray: "4, 6",
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedHazardId(hz.id);
+                      if (onSelectHazard) onSelectHazard(hz);
+                    },
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2 space-y-1.5 text-xs text-slate-200 font-sans">
+                      <div className="flex items-center justify-between border-b border-slate-700 pb-1">
+                        <span className="font-bold text-white flex items-center gap-1">
+                          <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                          {hz.name}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[10px] font-bold">
+                          {hz.riskLevel}
+                        </span>
+                      </div>
+                      <p className="text-slate-300 text-[11px]">{hz.description}</p>
+                      <p className="text-[10px] text-slate-400">Vulnerability: {hz.vulnerabilityScore}</p>
+                    </div>
+                  </Popup>
+                </Polygon>
+              ))}
+            </LayerGroup>
+          </LayersControl.Overlay>
 
-                <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between">
-                  <span>Updated: {node2.lastUpdate}</span>
-                  <span className="text-cyan-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-2")}>
-                    View Card ↓
-                  </span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        )}
+          <LayersControl.Overlay checked name="Reported Incidents">
+            <LayerGroup>
+              {reports?.map((rep) => rep.coordinates && (
+                <Marker key={rep.id} position={rep.coordinates} icon={createNodeIcon(rep.title, false)}>
+                  <Popup>
+                     <div className="p-2 space-y-1 text-xs font-sans text-slate-200">
+                        <div className="font-bold text-white mb-1 border-b border-slate-700 pb-1">{rep.title}</div>
+                        <div className="text-[10px] text-amber-400 font-bold uppercase">{rep.status}</div>
+                        <div>{rep.description}</div>
+                        <div className="text-[10px] text-slate-400 mt-2">By: {rep.reportedBy}</div>
+                     </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </LayerGroup>
+          </LayersControl.Overlay>
 
-        {/* Overall Area API Marker */}
-        {apiData && (
-          <Marker
-            position={[apiData.lat, apiData.lng]}
-            icon={createNodeIcon("Overall API Area", false)}
-          >
-            <Popup>
-              <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[210px]">
-                <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <CloudSun className="w-4 h-4 text-purple-400" />
-                    Overall Area — API Data
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px]">
-                    API Connected
-                  </span>
-                </div>
+          <LayersControl.Overlay name="Historical Landslides">
+            <LayerGroup>
+              {historicalLandslides.map((hist) => (
+                <Marker key={hist.id} position={hist.coordinates} icon={createNodeIcon('Historical', false)}>
+                  <Popup>
+                    <div className="p-2 space-y-1 text-xs font-sans text-slate-200">
+                      <div className="font-bold text-amber-400 mb-1 border-b border-slate-700 pb-1">{hist.name}</div>
+                      <div className="text-[10px] text-slate-300 font-bold uppercase">Date: {hist.date}</div>
+                      <div>{hist.description}</div>
+                      <div className="text-[10px] text-slate-400 mt-2">Severity: {hist.severity}</div>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </LayerGroup>
+          </LayersControl.Overlay>
 
-                <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
-                  <div>Temp: <span className="font-semibold text-white">{apiData.sensors.temperature.value} °C</span></div>
-                  <div>AQI: <span className="font-semibold text-amber-400">{apiData.sensors.aqi.value}</span></div>
-                  <div>PM2.5: <span className="font-semibold text-white">{apiData.sensors.pm25.value} µg/m³</span></div>
-                  <div>Rainfall: <span className="font-semibold text-white">{apiData.sensors.rainfall.value} mm/h</span></div>
-                  <div>Wind: <span className="font-semibold text-white">{apiData.sensors.windSpeed.value} km/h</span></div>
-                  <div>Pressure: <span className="font-semibold text-white">{apiData.sensors.pressure.value} hPa</span></div>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+          <LayersControl.Overlay checked name="Sensor Nodes">
+            <LayerGroup>
+              {/* Node 1 Marker */}
+              {node1 && (
+                <Marker
+                  position={[node1.lat, node1.lng]}
+                  icon={createNodeIcon("Node 1 — Hill Sector", selectedNodeId === "node-1")}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedNodeId("node-1");
+                      if (onSelectNode) onSelectNode("node-1");
+                    },
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[200px] font-mono">
+                      <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 font-sans">
+                        <span className="font-bold text-white flex items-center gap-1.5">
+                          <Radio className="w-4 h-4 text-emerald-400" />
+                          Node 1 — Hill Sector
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                          Online
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+                        <div>Comm: <span className="font-semibold text-teal-400">LoRa</span></div>
+                        <div>Battery: <span className="font-semibold text-white">{node1.battery}%</span></div>
+                        <div>Temp: <span className="font-semibold text-white">{node1.sensors.temperature.value} °C</span></div>
+                        <div>Hum: <span className="font-semibold text-white">{node1.sensors.humidity.value} %</span></div>
+                        <div>Soil: <span className="font-semibold text-amber-400">{node1.sensors.soilMoisture.value} %</span></div>
+                        <div>Rain: <span className="font-semibold text-red-400">{node1.sensors.rainfall.value} mm/h</span></div>
+                      </div>
+
+                      <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between font-sans">
+                        <span>Updated: {node1.lastUpdate}</span>
+                        <span className="text-emerald-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-1")}>
+                          View Card ↓
+                        </span>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Node 2 Marker */}
+              {node2 && (
+                <Marker
+                  position={[node2.lat, node2.lng]}
+                  icon={createNodeIcon("Node 2 — River Bank", selectedNodeId === "node-2")}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedNodeId("node-2");
+                      if (onSelectNode) onSelectNode("node-2");
+                    },
+                  }}
+                >
+                  <Popup>
+                    <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[200px] font-mono">
+                      <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 font-sans">
+                        <span className="font-bold text-white flex items-center gap-1.5">
+                          <Radio className="w-4 h-4 text-cyan-400" />
+                          Node 2 — River Bank
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                          Online
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+                        <div>Comm: <span className="font-semibold text-cyan-400">GSM</span></div>
+                        <div>Battery: <span className="font-semibold text-white">{node2.battery}%</span></div>
+                        <div>Temp: <span className="font-semibold text-white">{node2.sensors.temperature.value} °C</span></div>
+                        <div>PM2.5: <span className="font-semibold text-amber-400">{node2.sensors.pm25.value} µg/m³</span></div>
+                        <div>Water: <span className="font-semibold text-amber-400">{node2.sensors.waterLevel.value} m</span></div>
+                        <div>Hum: <span className="font-semibold text-white">{node2.sensors.humidity.value} %</span></div>
+                      </div>
+
+                      <div className="text-[10px] text-slate-400 border-t border-slate-800 pt-1 flex justify-between font-sans">
+                        <span>Updated: {node2.lastUpdate}</span>
+                        <span className="text-cyan-400 font-semibold cursor-pointer" onClick={() => onSelectNode && onSelectNode("node-2")}>
+                          View Card ↓
+                        </span>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Overall Area API Marker */}
+              {apiData && (
+                <Marker
+                  position={[apiData.lat, apiData.lng]}
+                  icon={createNodeIcon("Overall API Area", false)}
+                >
+                  <Popup>
+                    <div className="p-2.5 space-y-2 text-xs text-slate-100 min-w-[210px] font-mono">
+                      <div className="flex items-center justify-between border-b border-slate-700 pb-1.5 font-sans">
+                        <span className="font-bold text-white flex items-center gap-1.5">
+                          <CloudSun className="w-4 h-4 text-purple-400" />
+                          Overall Area — API Data
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px]">
+                          API Connected
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+                        <div>Temp: <span className="font-semibold text-white">{apiData.sensors.temperature.value} °C</span></div>
+                        <div>AQI: <span className="font-semibold text-amber-400">{apiData.sensors.aqi.value}</span></div>
+                        <div>PM2.5: <span className="font-semibold text-white">{apiData.sensors.pm25.value} µg/m³</span></div>
+                        <div>Rain: <span className="font-semibold text-white">{apiData.sensors.rainfall.value} mm/h</span></div>
+                        <div>Wind: <span className="font-semibold text-white">{apiData.sensors.windSpeed.value} km/h</span></div>
+                        <div>Press: <span className="font-semibold text-white">{apiData.sensors.pressure.value} hPa</span></div>
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+            </LayerGroup>
+          </LayersControl.Overlay>
+        </LayersControl>
+
+        <LiveWindLayer />
+
+        {/* Side-by-side comparison simulated using a secondary TileLayer in a rectangle if active */}
+        {/* We use a crude but effective visual comparison without external plugins for the demo */}
+        {showComparison && (
+          <LayerGroup>
+             <Rectangle bounds={[[25.2, 91.7], [25.3, 91.8]]} pathOptions={{ color: '#ef4444', weight: 2, fillOpacity: 0 }} />
+             <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              bounds={[[25.2, 91.7], [25.3, 91.8]]}
+              opacity={0.8}
+            />
+          </LayerGroup>
         )}
       </MapContainer>
 

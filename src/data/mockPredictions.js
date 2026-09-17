@@ -1,3 +1,48 @@
+/**
+ * Compute confidence percentage based on critical conditions.
+ * Returns 85%+ when critical conditions are met.
+ * @param {Object} computedRisk - Risk calculation result from calculateRisk()
+ * @param {string} category - Risk category: "Overall", "Landslide", "Flood", "AirQuality"
+ * @returns {string} Confidence percentage as string (e.g., "87%")
+ */
+export const computeConfidence = (computedRisk, category = "Overall") => {
+  // Base confidence based on risk score
+  let baseConfidence = 75;
+  
+  // Adjust based on category-specific risk score
+  if (category === "Overall") {
+    baseConfidence = Math.min(99, Math.max(75, computedRisk.overallScore));
+  } else if (category === "Landslide") {
+    baseConfidence = Math.min(99, Math.max(75, computedRisk.landslideScore));
+  } else if (category === "Flood") {
+    baseConfidence = Math.min(99, Math.max(75, computedRisk.floodScore));
+  } else if (category === "AirQuality") {
+    baseConfidence = Math.min(99, Math.max(75, computedRisk.airQualityScore));
+  }
+  
+  // Boost confidence when critical conditions are detected
+  if (computedRisk.anyCritical) {
+    // Any critical condition forces confidence ≥ 85
+    baseConfidence = Math.max(baseConfidence, 85);
+    
+    // All three critical conditions forces confidence ≥ 92
+    if (computedRisk.allCritical) {
+      baseConfidence = Math.max(baseConfidence, 92);
+    }
+    
+    // Category-specific critical condition boosts
+    if (category === "Landslide" && computedRisk.critSoil) {
+      baseConfidence = Math.max(baseConfidence, 88);
+    }
+    if (category === "Flood" && (computedRisk.critWater || computedRisk.critDecRate)) {
+      baseConfidence = Math.max(baseConfidence, 86);
+    }
+  }
+  
+  // Round to nearest integer and format as percentage
+  return `${Math.round(baseConfidence)}%`;
+};
+
 export const initialMLState = {
   modelName: "EnviroGuard-MultiHazard-XGBoost",
   modelVersion: "Environmental-Risk-v1.2",

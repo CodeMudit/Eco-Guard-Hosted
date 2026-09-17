@@ -56,7 +56,7 @@ const MainContent = () => {
             <div>
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold">
                     <Trees className="w-5 h-5" />
                   </div>
                   <span className="font-bold text-white text-base">EcoWatch</span>
@@ -87,9 +87,9 @@ const MainContent = () => {
                       setActivePage(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl font-medium text-xs ${
-                      activePage === item.id ? "bg-emerald-600 text-white font-bold" : "text-slate-400"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                      activePage === item.id ? "bg-indigo-600 text-white font-bold" : "text-slate-400"
+                    } hover:bg-slate-800 hover:text-white`}
                   >
                     {item.label}
                   </button>

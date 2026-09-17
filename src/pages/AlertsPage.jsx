@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { AlertDetailModal } from "../components/alerts/AlertDetailModal";
-import { BellRing, Filter, Search, CheckCircle2, MapPin } from "lucide-react";
+import { BellRing, Filter, Search, CheckCircle2, MapPin, Send } from "lucide-react";
+import { sendAlert } from "../services/alerts";
 
 export const AlertsPage = () => {
   const { alerts, acknowledgeAlert, resolveAlert, focusOnMap } = useApp();
@@ -134,6 +135,15 @@ export const AlertsPage = () => {
                 >
                   <MapPin className="w-3.5 h-3.5 text-emerald-400" />
                   View on Map
+                </button>
+
+                <button
+                  onClick={() => {
+                    sendAlert({ alertId: alert.id }).then(log => alert(`Simulated SMS dispatch successful!\n\n${log.message}`));
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 text-xs font-semibold flex items-center gap-1"
+                >
+                  <Send className="w-3 h-3" /> Notify Admin
                 </button>
 
                 {alert.status === "Active" && (

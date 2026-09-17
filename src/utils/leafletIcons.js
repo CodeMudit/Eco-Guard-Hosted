@@ -1,9 +1,10 @@
 import L from "leaflet";
 
 export const createNodeIcon = (label, isSelected = false) => {
-  const isNode1 = label.includes("Node 1");
-  const isNode2 = label.includes("Node 2");
-  const isApi = label.includes("API");
+  const safeLabel = label || "Unknown";
+  const isNode1 = safeLabel.includes("Node 1");
+  const isNode2 = safeLabel.includes("Node 2");
+  const isApi = safeLabel.includes("API");
 
   let mainColor = "#10b981"; // Emerald
   let bgGradient = "linear-gradient(135deg, #10b981, #059669)";
@@ -49,7 +50,7 @@ export const createNodeIcon = (label, isSelected = false) => {
         white-space: nowrap;
         box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);
       ">
-        ${label}
+        ${safeLabel}
       </div>
     </div>
   `;

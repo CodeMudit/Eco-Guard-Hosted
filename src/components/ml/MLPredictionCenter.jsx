@@ -3,6 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { RiskIndicator } from "./RiskIndicator";
 import { ModelInputBar } from "./ModelInputBar";
 import { BrainCircuit } from "lucide-react";
+import { computeConfidence } from "../../data/mockPredictions";
 
 export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) => {
   const {
@@ -91,7 +92,7 @@ export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) =>
             </div>
             <div className="flex justify-between text-slate-400">
               <span>Model Confidence:</span>
-              <span className="text-emerald-400 font-bold">{activeCategoryData.confidence}</span>
+              <span className="text-emerald-400 font-bold">{computeConfidence(computedRisk, mlCategory)}</span>
             </div>
             <div className="flex justify-between text-slate-400">
               <span>Prediction Horizon:</span>
@@ -123,6 +124,34 @@ export const MLPredictionCenter = ({ onViewAlertModal, onCreateReportModal }) =>
                 <ModelInputBar key={idx} {...input} />
               ))}
             </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
+             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <BrainCircuit className="w-4 h-4" /> Explainable AI Triggers
+                </h4>
+                <span className="text-[10px] text-slate-500 font-mono">Why did the model predict this?</span>
+             </div>
+             <div className="space-y-2 text-xs">
+                {Object.values(computedRisk.events || {}).filter(ev => ev.active).length > 0 ? (
+                   Object.values(computedRisk.events).filter(ev => ev.active).map((ev, i) => (
+                      <div key={i} className="flex justify-between items-center p-2 rounded bg-slate-900 border border-red-500/30">
+                         <span className="text-red-400 font-bold">{ev.title}</span>
+                         <span className="text-slate-300">{ev.details}</span>
+                      </div>
+                   ))
+                ) : (
+                   <div className="p-2 text-center text-slate-500 border border-slate-800/50 border-dashed rounded bg-slate-900/50">
+                      No critical thresholds triggered. Risk is within baseline operational parameters.
+                   </div>
+                )}
+                {computedRisk.overallScore > 80 && (
+                   <div className="p-2 rounded bg-orange-500/10 border border-orange-500/30 text-orange-400 font-semibold mt-2">
+                      Recent Field Reports escalated overall prediction score by up to 15%.
+                   </div>
+                )}
+             </div>
           </div>
         </div>
       </div>

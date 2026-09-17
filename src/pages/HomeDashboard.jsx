@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { AlertPanel } from "../components/alerts/AlertPanel";
 import { AlertDetailModal } from "../components/alerts/AlertDetailModal";
+import { EventsPanel } from "../components/alerts/EventsPanel";
+import { AdvisoriesPanel } from "../components/alerts/AdvisoriesPanel";
 import { ReportedSections } from "../components/hazards/ReportedSections";
 import { HazardZones } from "../components/hazards/HazardZones";
 import { MapPanel } from "../components/map/MapPanel";
@@ -147,6 +149,12 @@ export const HomeDashboard = () => {
           <ApiOverviewCard onViewApiHistory={() => setActivePage("api-data")} />
           <AlertPanel onSelectAlert={(a) => setSelectedAlertForModal(a)} />
         </div>
+      </div>
+
+      {/* SECTION 1.5: Events & Advisories Command Center (50/50 Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch h-[400px]">
+        <EventsPanel />
+        <AdvisoriesPanel />
       </div>
 
       {/* SECTION 2: Live IoT Node Hardware Cards (50/50 Grid - 6 Cols Each) */}

@@ -1,6 +1,7 @@
 import React from "react";
 import { useApp } from "../context/AppContext";
 import { LineChart, BarChart2 } from "lucide-react";
+import { RoadConnectivity, WeatherForecastPanel, PriorityList } from "../components/dashboard/DashboardExtensions";
 import {
   ResponsiveContainer,
   XAxis,
@@ -112,6 +113,13 @@ export const AnalyticsPage = () => {
             *High positive correlation between Soil Moisture & Rainfall intensity (+0.88) represents the primary statistical driver behind Landslide Risk prediction alerts.
           </p>
         </div>
+      </div>
+
+      {/* Extensions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+         <div className="lg:col-span-1"><RoadConnectivity /></div>
+         <div className="lg:col-span-1"><WeatherForecastPanel /></div>
+         <div className="lg:col-span-2"><PriorityList /></div>
       </div>
     </div>
   );

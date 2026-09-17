@@ -8,9 +8,8 @@ import { initialMLState } from "../data/mockPredictions";
 import { initialReports } from "../data/mockReports";
 import { calculateRisk } from "../utils/riskCalculator";
 import { useFirebaseData } from "../hooks/useFirebaseData";
-
-const RAW_API_URL = import.meta.env.VITE_API_URL || "";
-export const API_URL = RAW_API_URL ? RAW_API_URL.replace(/\/$/, "") : "";
+import { fetchWeather } from "../services/weatherApi";
+import { API_URL } from "../config";
 
 const AppContext = createContext();
 
@@ -61,11 +60,19 @@ export const AppProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
         return localStorage.getItem("evoguard_theme") || "dark";
     });
+    const [fontSize, setFontSize] = useState(() => localStorage.getItem("evoguard_fontsize") || "16px");
+    const [contrast, setContrast] = useState(() => Number(localStorage.getItem("evoguard_contrast")) || 1);
     const [toasts, setToasts] = useState([]);
 
-    // Theme synchronization effect
+    // Theme & Accessibility synchronization effect
     useEffect(() => {
         localStorage.setItem("evoguard_theme", theme);
+        localStorage.setItem("evoguard_fontsize", fontSize);
+        localStorage.setItem("evoguard_contrast", contrast.toString());
+
+        document.documentElement.style.setProperty("--base-font-size", fontSize);
+        document.documentElement.style.setProperty("--base-contrast", contrast);
+
         if (theme === "light") {
             document.documentElement.classList.add("light-theme");
             document.documentElement.classList.remove("dark");
@@ -73,7 +80,7 @@ export const AppProvider = ({ children }) => {
             document.documentElement.classList.remove("light-theme");
             document.documentElement.classList.add("dark");
         }
-    }, [theme]);
+    }, [theme, fontSize, contrast]);
 
     // Toast Helper
     const addToast = useCallback((title, message, type = "info") => {
@@ -137,7 +144,7 @@ export const AppProvider = ({ children }) => {
             .then(res => res.json())
             .then(json => {
                 if (json.success && json.data) {
-                    setApiData(json.data);
+                    setApiData(prev => ({ ...prev, ...json.data }));
                 }
             })
             .catch(err => console.warn("Failed to fetch /api/weather/current:", err.message));
@@ -208,7 +215,7 @@ export const AppProvider = ({ children }) => {
     }, [addToast]);
 
     // Compute live ML prediction state based on active nodes, api data, & thresholds
-    const computedRisk = calculateRisk(nodes, apiData, thresholds);
+    const computedRisk = calculateRisk(nodes, apiData, thresholds, reports);
 
     // Dynamic ML Prediction object
     const currentMLPrediction = {
@@ -302,24 +309,41 @@ export const AppProvider = ({ children }) => {
                 }),
             );
 
-            // Perturb API Data
-            setApiData(prevApi => ({
-                ...prevApi,
-                lastUpdate: "Just now",
-                sensors: {
-                    ...prevApi.sensors,
-                    temperature: {
-                        ...prevApi.sensors.temperature,
-                        value: Number((prevApi.sensors.temperature.value + (Math.random() - 0.5) * 0.4).toFixed(1)),
-                    },
-                    rainfall: {
-                        ...prevApi.sensors.rainfall,
-                        value: Number(
-                            Math.max(0, prevApi.sensors.rainfall.value + (Math.random() - 0.5) * 0.3).toFixed(1),
-                        ),
-                    },
-                },
-            }));
+            // Try fetching real API data first
+            fetchWeather().then(liveWeather => {
+               if (liveWeather) {
+                  setApiData(prevApi => ({
+                     ...prevApi,
+                     lastUpdate: "Just now",
+                     sensors: {
+                           ...prevApi.sensors,
+                           temperature: { ...prevApi.sensors.temperature, value: liveWeather.temperature },
+                           rainfall: { ...prevApi.sensors.rainfall, value: liveWeather.rainfall },
+                           windSpeed: { ...prevApi.sensors.windSpeed, value: liveWeather.windSpeed },
+                           pressure: { ...prevApi.sensors.pressure, value: liveWeather.pressure },
+                     }
+                  }));
+               } else {
+                  // Local Fallback perturbing
+                  setApiData(prevApi => ({
+                     ...prevApi,
+                     lastUpdate: "Just now",
+                     sensors: {
+                           ...prevApi.sensors,
+                           temperature: {
+                              ...prevApi.sensors.temperature,
+                              value: Number((prevApi.sensors.temperature.value + (Math.random() - 0.5) * 0.4).toFixed(1)),
+                           },
+                           rainfall: {
+                              ...prevApi.sensors.rainfall,
+                              value: Number(
+                                 Math.max(0, prevApi.sensors.rainfall.value + (Math.random() - 0.5) * 0.3).toFixed(1),
+                              ),
+                           },
+                     },
+                  }));
+               }
+            });
 
             if (!isAuto) {
                 addToast("Data Refreshed", `System synchronized at ${timeStr}`, "success");
@@ -401,6 +425,12 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    // Update Incident Report Status
+    const updateReportStatus = (reportId, newStatus) => {
+        setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: newStatus } : r));
+        addToast("Report Updated", `Report status updated to ${newStatus}.`, "success");
+    };
+
     // Map Navigation helper
     const focusOnMap = (lat, lng, zoom = 14) => {
         setMapTarget({ lat, lng, zoom, timestamp: Date.now() });
@@ -443,8 +473,13 @@ export const AppProvider = ({ children }) => {
                 acknowledgeAlert,
                 resolveAlert,
                 addReportedSection,
+                updateReportStatus,
                 theme,
                 setTheme,
+                fontSize,
+                setFontSize,
+                contrast,
+                setContrast,
                 toasts,
                 addToast,
                 removeToast,

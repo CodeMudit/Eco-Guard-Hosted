@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useApp } from "../../context/AppContext";
 import {
   Search,
@@ -12,7 +13,10 @@ import {
   Menu,
   Sun,
   Moon,
+  Globe,
+  Info
 } from "lucide-react";
+import { AboutModal } from "./AboutModal";
 
 export const TopHeader = ({ onMobileMenuToggle }) => {
   const {
@@ -27,11 +31,17 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
     nodes,
     theme,
     setTheme,
+    fontSize,
+    setFontSize,
+    contrast,
+    setContrast,
   } = useApp();
 
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const activeAlerts = alerts.filter((a) => a.status === "Active");
 
@@ -53,8 +63,23 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
   };
 
   return (
-    <header className="sticky top-0 z-20 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4">
-      {/* Mobile Menu Toggle & Title */}
+    <div className="flex flex-col w-full z-20 sticky top-0 shadow-sm">
+      {/* Govt Accessibility Bar */}
+      <div className="bg-slate-950 text-slate-300 px-4 py-1.5 flex justify-end items-center text-[10px] sm:text-xs gap-4 border-b border-slate-800 hidden md:flex">
+         <div className="flex items-center gap-3">
+            <span className="text-slate-500 font-semibold uppercase tracking-wider text-[9px] mr-1">Text Size</span>
+            <button onClick={() => setFontSize('14px')} className={`transition-colors ${fontSize === '14px' ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>A-</button>
+            <button onClick={() => setFontSize('16px')} className={`transition-colors ${fontSize === '16px' ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>A</button>
+            <button onClick={() => setFontSize('18px')} className={`transition-colors ${fontSize === '18px' ? 'text-emerald-400 font-bold' : 'hover:text-white'}`}>A+</button>
+         </div>
+         <div className="h-3 w-px bg-slate-700"></div>
+         <button onClick={() => setContrast(c => c === 1 ? 1.25 : 1)} className={`flex items-center gap-1.5 transition-colors ${contrast > 1 ? 'text-amber-400 font-bold' : 'hover:text-white'}`}>
+            <Sun className="w-3.5 h-3.5" /> High Contrast
+         </button>
+      </div>
+
+      <header className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between gap-4">
+        {/* Mobile Menu Toggle & Title */}
       <div className="flex items-center gap-3">
         <button
           onClick={onMobileMenuToggle}
@@ -64,11 +89,11 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
         </button>
 
         <div>
-          <h1 className="text-base md:text-lg font-bold text-white leading-tight">
-            Environmental Study & Quick Alert System
+          <h1 className="text-base md:text-lg font-bold text-blue-600 leading-tight">
+            North Eastern Regional Node for Disaster Risk Reduction
           </h1>
-          <p className="text-xs text-slate-400 hidden sm:block">
-            Real-time Monitoring • Predictive Analysis • Quick Alerts
+          <p className="text-xs text-blue-800 font-semibold hidden sm:block">
+            North Eastern Space Applications Centre
           </p>
         </div>
       </div>
@@ -121,6 +146,14 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
 
         {/* Quick Theme Switcher Button */}
         <button
+          onClick={() => setShowAboutModal(true)}
+          className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 transition-all active:scale-95 flex items-center justify-center hidden sm:flex"
+          title="About EcoWatch SIH Prototype"
+        >
+          <Info className="w-4 h-4" />
+        </button>
+
+        <button
           onClick={() => {
             const nextTheme = theme === "dark" ? "light" : "dark";
             setTheme(nextTheme);
@@ -139,6 +172,18 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
             <Moon className="w-4 h-4 text-indigo-400" />
           )}
         </button>
+
+        {/* Language Switcher */}
+        <div className="relative group hidden md:block">
+          <button className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all active:scale-95 flex items-center justify-center">
+             <Globe className="w-4 h-4 text-blue-400" />
+          </button>
+          <div className="absolute right-0 mt-2 w-32 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl z-50 p-2 text-xs space-y-1 hidden group-hover:block">
+             <button onClick={() => { i18n.changeLanguage('en'); addToast("Language Settings", "Switched to English", "info"); }} className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-800 text-slate-300">English</button>
+             <button onClick={() => { i18n.changeLanguage('hi'); addToast("Language Settings", "Switched to Hindi", "info"); }} className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-800 text-slate-300">Hindi</button>
+             <button onClick={() => { i18n.changeLanguage('as'); addToast("Language Settings", "Switched to Assamese", "info"); }} className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-800 text-slate-300">Assamese</button>
+          </div>
+        </div>
 
         {/* System Status Pill */}
         <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
@@ -217,10 +262,10 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200"
           >
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
-              EV
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+              NE
             </div>
-            <span className="text-xs font-semibold hidden md:inline">Operator</span>
+            <span className="text-xs font-semibold hidden md:inline">NESAC</span>
           </button>
 
           {showUserMenu && (
@@ -243,6 +288,9 @@ export const TopHeader = ({ onMobileMenuToggle }) => {
           )}
         </div>
       </div>
-    </header>
+      
+      <AboutModal isOpen={showAboutModal} onClose={() => setShowAboutModal(false)} />
+      </header>
+    </div>
   );
 };

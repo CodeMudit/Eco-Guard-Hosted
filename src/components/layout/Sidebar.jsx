@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useApp } from "../../context/AppContext";
 import {
   LayoutDashboard,
@@ -18,18 +19,19 @@ import {
 
 export const Sidebar = () => {
   const { activePage, setActivePage, lastRefreshedAt, computedRisk } = useApp();
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
-    { id: "home", label: "Home", icon: LayoutDashboard },
-    { id: "nodes", label: "Nodes", icon: Radio },
-    { id: "ml-predictions", label: "ML Predictions", icon: BrainCircuit },
-    { id: "api-data", label: "API Data", icon: CloudSun },
-    { id: "analytics", label: "Analytics", icon: LineChart },
-    { id: "alerts", label: "Alerts", icon: Bell },
-    { id: "reports", label: "Reports", icon: FileText },
-    { id: "hazards", label: "Hazard Zones", icon: ShieldAlert },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "home", label: t("Home", "Home"), icon: LayoutDashboard },
+    { id: "nodes", label: t("Nodes", "Nodes"), icon: Radio },
+    { id: "ml-predictions", label: t("ML Predictions", "ML Predictions"), icon: BrainCircuit },
+    { id: "api-data", label: t("API Data", "API Data"), icon: CloudSun },
+    { id: "analytics", label: t("Analytics", "Analytics"), icon: LineChart },
+    { id: "alerts", label: t("Alerts", "Alerts"), icon: Bell },
+    { id: "reports", label: t("Reports", "Reports"), icon: FileText },
+    { id: "hazards", label: t("Hazard Zones", "Hazard Zones"), icon: ShieldAlert },
+    { id: "settings", label: t("Settings", "Settings"), icon: Settings },
   ];
 
   return (
@@ -42,14 +44,14 @@ export const Sidebar = () => {
       <div>
         <div className="p-4 flex items-center justify-between border-b border-slate-800/80">
           <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-lg shadow-emerald-950/50 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white shadow-lg shadow-indigo-950/50 shrink-0">
               <Trees className="w-6 h-6" />
             </div>
             {!collapsed && (
               <div className="truncate">
                 <h1 className="font-bold text-lg text-white leading-tight tracking-tight">EcoWatch</h1>
-                <p className="text-[10px] text-emerald-400 font-medium tracking-wide uppercase truncate">
-                  Environmental Study & Alert
+                <p className="text-[10px] text-blue-400 font-medium tracking-wide uppercase truncate">
+                  NER-DRR
                 </p>
               </div>
             )}
@@ -75,12 +77,12 @@ export const Sidebar = () => {
                 onClick={() => setActivePage(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 group ${
                   isActive
-                    ? "bg-gradient-to-r from-emerald-600/90 to-teal-600/90 text-white shadow-md shadow-emerald-950/40"
+                    ? "bg-gradient-to-r from-blue-600/90 to-blue-700/90 text-white shadow-md shadow-blue-900/40"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
                 title={collapsed ? item.label : ""}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-emerald-400"}`} />
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-slate-400 group-hover:text-indigo-400"}`} />
                 {!collapsed && <span className="truncate flex-1 text-left">{item.label}</span>}
               </button>
             );
@@ -94,8 +96,8 @@ export const Sidebar = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-xs font-semibold text-emerald-400">System Online</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-ping" />
+                <span className="text-xs font-semibold text-indigo-400">{t("System Online", "System Online")}</span>
               </div>
               <Activity className="w-4 h-4 text-emerald-500" />
             </div>

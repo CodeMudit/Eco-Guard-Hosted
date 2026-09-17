@@ -64,8 +64,9 @@ const mapNode1Sensors = (rec = {}, defaultNode) => {
     return {
         temperature: { ...defaultNode.sensors.temperature, value: temperature, status: getStatus(temperature, 10, 35) },
         humidity:    { ...defaultNode.sensors.humidity,    value: humidity,     status: getStatus(humidity, 30, 80) },
-        soilMoisture: { ...defaultNode.sensors.soilMoisture, value: soilMoisture, status: soilMoisture > 85 ? 'critical' : soilMoisture > 70 ? 'warning' : 'normal' },
+        soilMoisture: { ...defaultNode.sensors.soilMoisture, value: soilMoisture, status: soilMoisture >= 80 ? 'critical' : soilMoisture >= 70 ? 'warning' : 'normal' },
         rainfall: { ...defaultNode.sensors.rainfall, value: mq3, unit: 'ppm', status: mq3 > 1500 ? 'critical' : mq3 > 800 ? 'warning' : 'normal' },
+
     };
 };
 const mapNode2Sensors = (rec = {}, defaultNode) => {
@@ -83,7 +84,8 @@ const mapNode2Sensors = (rec = {}, defaultNode) => {
         soilMoisture: {
             value: soilMoisture,
             unit: "%",
-            status: soilMoisture > 85 ? "critical" : soilMoisture > 70 ? "warning" : "normal"
+            // >=80 → critical, >=70 → warning (matches user-defined thresholds)
+            status: soilMoisture >= 80 ? "critical" : soilMoisture >= 70 ? "warning" : "normal",
         },
         pm25: {
             ...defaultNode.sensors.pm25,
@@ -95,7 +97,8 @@ const mapNode2Sensors = (rec = {}, defaultNode) => {
             ...defaultNode.sensors.waterLevel,
             value: typeof distance === "number" ? parseFloat(distance.toFixed(2)) : defaultNode.sensors.waterLevel.value,
             unit: "m",
-            status: distance >= 4.5 ? "critical" : distance >= 3.5 ? "warning" : "normal",
+            // >=2m → critical, >=1m → warning
+            status: distance >= 2 ? "critical" : distance >= 1 ? "warning" : "normal",
         },
     };
 };
@@ -218,55 +221,8 @@ export const useFirebaseData = () => {
     const [firebaseApiData, setFirebaseApiData] = useState(initialApiData);
     const [firebaseHistory, setFirebaseHistory] = useState(defaultHistory);
     const [isFirebaseLoading, setIsFirebaseLoading] = useState(isFirebaseConfigured);
-    // ---- Real Weather API (OpenWeather - Northeastern Manipur) ----
-    useEffect(() => {
-        const fetchWeather = async () => {
-            try {
-                const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
-                if (!apiKey) return;
-                
-                const [weatherRes, airRes] = await Promise.all([
-                    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=25.1&lon=94.3&appid=${apiKey}&units=metric`),
-                    fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=25.1&lon=94.3&appid=${apiKey}`)
-                ]);
-
-                const weatherData = await weatherRes.json();
-                const airData = await airRes.json();
-                
-                if (weatherData && weatherData.main) {
-                    let pm25Val = 0;
-                    let calculatedAqi = 0;
-                    
-                    if (airData && airData.list && airData.list[0]) {
-                        pm25Val = airData.list[0].components.pm2_5;
-                        calculatedAqi = Math.round(pm25Val * 4);
-                    }
-
-                    setFirebaseApiData(prev => ({
-                        ...prev,
-                        provider: 'OpenWeatherMap (Manipur Region)',
-                        sensors: {
-                            ...prev.sensors,
-                            temperature: { ...prev.sensors.temperature, value: weatherData.main.temp },
-                            humidity: { ...prev.sensors.humidity, value: weatherData.main.humidity },
-                            rainfall: { ...prev.sensors.rainfall, value: weatherData.rain?.['1h'] || 0 },
-                            windSpeed: { ...prev.sensors.windSpeed, value: Math.round(weatherData.wind.speed * 3.6) },
-                            pressure: { ...prev.sensors.pressure, value: weatherData.main.pressure },
-                            visibility: { ...prev.sensors.visibility, value: parseFloat((weatherData.visibility / 1000).toFixed(1)) },
-                            aqi: { ...prev.sensors.aqi, value: calculatedAqi },
-                            pm25: { ...prev.sensors.pm25, value: pm25Val },
-                        }
-                    }));
-                }
-            } catch (err) {
-                // weather fetch failed silently
-            }
-        };
-        fetchWeather();
-        const interval = setInterval(fetchWeather, 5 * 60 * 1000); // 5 mins
-        return () => clearInterval(interval);
-    }, []);
-
+    // Weather fetching is now handled by weatherApi.js proxying the backend.
+    
     useEffect(() => {
         if (!isFirebaseConfigured || !db) {
             return;
@@ -362,48 +318,8 @@ export const useFirebaseData = () => {
         };
     }, []);
 
-    // Fetch real weather data for Northern Manipur from Open-Meteo
-    useEffect(() => {
-        const fetchWeatherData = async () => {
-            try {
-                // Northern Manipur (Senapati area roughly) coordinates: 25.267, 94.022
-                const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=25.267&longitude=94.022&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,surface_pressure,visibility&timezone=auto');
-                const weatherJson = await weatherRes.json();
-                
-                const aqRes = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=25.267&longitude=94.022&current=pm2_5,uv_index,us_aqi&timezone=auto');
-                const aqJson = await aqRes.json();
+    // Open-Meteo logic migrated to backend proxy.
 
-                if (weatherJson.current && aqJson.current) {
-                    setFirebaseApiData((prev) => ({
-                        ...prev,
-                        lastUpdate: "Just now",
-                        provider: "Open-Meteo (Northern Manipur)",
-                        latency: "live",
-                        dataFreshness: "100%",
-                        sensors: {
-                            ...prev.sensors,
-                            temperature: { ...prev.sensors.temperature, value: weatherJson.current.temperature_2m },
-                            humidity:    { ...prev.sensors.humidity,    value: weatherJson.current.relative_humidity_2m },
-                            aqi:         { ...prev.sensors.aqi,         value: aqJson.current.us_aqi },
-                            pm25:        { ...prev.sensors.pm25,        value: aqJson.current.pm2_5 },
-                            rainfall:    { ...prev.sensors.rainfall,    value: weatherJson.current.precipitation },
-                            windSpeed:   { ...prev.sensors.windSpeed,   value: weatherJson.current.wind_speed_10m },
-                            windDirection: weatherJson.current.wind_direction_10m + "°",
-                            pressure:    { ...prev.sensors.pressure,    value: weatherJson.current.surface_pressure },
-                            visibility:  { ...prev.sensors.visibility,  value: parseFloat((weatherJson.current.visibility / 1000).toFixed(1)) },
-                            uvIndex:     { ...prev.sensors.uvIndex,     value: aqJson.current.uv_index },
-                        },
-                    }));
-                }
-            } catch (err) {
-                // weather fetch failed silently
-            }
-        };
-
-        fetchWeatherData();
-        const interval = setInterval(fetchWeatherData, 15 * 60 * 1000); // Refresh every 15 minutes
-        return () => clearInterval(interval);
-    }, []);
 
     return { firebaseNodes, firebaseApiData, firebaseHistory, isFirebaseLoading };
 };
