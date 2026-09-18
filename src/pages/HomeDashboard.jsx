@@ -7,6 +7,7 @@ import { AdvisoriesPanel } from "../components/alerts/AdvisoriesPanel";
 import { ReportedSections } from "../components/hazards/ReportedSections";
 import { HazardZones } from "../components/hazards/HazardZones";
 import { MapPanel } from "../components/map/MapPanel";
+import { Terrain3DViewer } from "../components/map/Terrain3DViewer";
 import { NodeCard } from "../components/nodes/NodeCard";
 import { NodeDetailModal } from "../components/nodes/NodeDetailModal";
 import { NodeHistoryModal } from "../components/nodes/NodeHistoryModal";
@@ -33,6 +34,8 @@ export const HomeDashboard = () => {
   const [selectedNodeForModal, setSelectedNodeForModal] = useState(null);
   const [selectedNodeHistoryForModal, setSelectedNodeHistoryForModal] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("2D");
+  const [terrainTarget, setTerrainTarget] = useState(null);
 
   const [reportForm, setReportForm] = useState({
     title: "",
@@ -62,92 +65,95 @@ export const HomeDashboard = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* HERO COMMAND CENTER METRIC BAR */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Overall Risk */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800/80 hover:border-red-500/40 transition-all duration-300 shadow-xl flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Global AI Risk Index
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{computedRisk.overallScore}</span>
-              <span className="text-xs font-bold text-red-400 uppercase tracking-tight">{computedRisk.overallLevel} RISK</span>
-            </div>
-            <span className="text-[11px] text-slate-400 block">Real-time model inference</span>
-          </div>
-          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 group-hover:scale-105 transition-transform">
-            <ShieldAlert className="w-6 h-6 animate-pulse" />
-          </div>
+      {/* COMPACT OPERATIONAL STATUS STRIP */}
+      <div className="flex flex-wrap items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl text-[11px] font-medium text-slate-300 shadow-sm">
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded border border-slate-800">
+          <span className="text-slate-400">Regional Risk:</span>
+          <span className={`font-bold ${computedRisk.overallLevel === 'HIGH' || computedRisk.overallLevel === 'EXTREME' ? 'text-red-400' : 'text-amber-400'}`}>
+            {computedRisk.overallLevel}
+          </span>
         </div>
-
-        {/* Metric 2: IoT Hardware Telemetry */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800/80 hover:border-emerald-500/40 transition-all duration-300 shadow-xl flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Active Hardware Nodes
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">2 / 2</span>
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-tight">100% ONLINE</span>
-            </div>
-            <span className="text-[11px] text-slate-400 block">LoRa & GSM mesh connected</span>
-          </div>
-          <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 group-hover:scale-105 transition-transform">
-            <Radio className="w-6 h-6" />
-          </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded border border-slate-800">
+          <span className="text-slate-400">Active Alerts:</span>
+          <span className="font-bold text-amber-400">
+            {alerts.filter(a => a.status === 'Active').length} ZONES
+          </span>
         </div>
-
-        {/* Metric 3: Regional Weather */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800/80 hover:border-purple-500/40 transition-all duration-300 shadow-xl flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Regional API Telemetry
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{apiData.sensors.temperature.value}°C</span>
-              <span className="text-xs font-bold text-purple-300 uppercase tracking-tight">AQI {apiData.sensors.aqi.value}</span>
-            </div>
-            <span className="text-[11px] text-slate-400 block">OpenWeather API Connected</span>
-          </div>
-          <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 group-hover:scale-105 transition-transform">
-            <CloudSun className="w-6 h-6" />
-          </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded border border-slate-800">
+          <span className="text-slate-400">Sensors:</span>
+          <span className="font-bold text-emerald-400">100% ONLINE</span>
         </div>
-
-        {/* Metric 4: Early Warnings */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800/80 hover:border-amber-500/40 transition-all duration-300 shadow-xl flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-              Active Warnings
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-white">{alerts.filter(a => a.status === 'Active').length}</span>
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-tight">ALERT ACTIVE</span>
-            </div>
-            <span className="text-[11px] text-slate-400 block">3 Critical Zones Monitored</span>
-          </div>
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 group-hover:scale-105 transition-transform">
-            <Activity className="w-6 h-6" />
-          </div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded border border-slate-800">
+          <span className="text-slate-400">Weather:</span>
+          <span className="font-bold text-blue-400">LIVE (Open-Meteo)</span>
         </div>
       </div>
 
-      {/* SECTION 1: Map Panel (8 Cols) & Live Regional API / Alert Overview (4 Cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-8 flex flex-col">
-          <MapPanel
-            onSelectNode={(id) => {
-              setSelectedNodeId(id);
-              const card = document.getElementById(`node-card-${id}`);
-              if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
-          />
+      {/* SECTION 1: Map Panel (75%) & Response Priorities / Alerts (25%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[700px]">
+        <div className="lg:col-span-3 flex flex-col relative h-full">
+          {viewMode === "2D" ? (
+            <MapPanel
+              onSelectNode={(id) => setSelectedNodeId(id)}
+              onCreateReport={(lat, lng) => {
+                  setReportForm({
+                      ...reportForm,
+                      location: `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`
+                  });
+                  setIsReportModalOpen(true);
+              }}
+              onOpen3D={(lat, lng) => {
+                  setTerrainTarget({ lat, lng });
+                  setViewMode("3D");
+              }}
+            />
+          ) : (
+            <Terrain3DViewer 
+              centerLat={terrainTarget?.lat} 
+              centerLng={terrainTarget?.lng}
+              onClose={() => setViewMode("2D")}
+            />
+          )}
         </div>
 
-        <div className="lg:col-span-4 flex flex-col justify-between space-y-6">
-          <ApiOverviewCard onViewApiHistory={() => setActivePage("api-data")} />
-          <AlertPanel onSelectAlert={(a) => setSelectedAlertForModal(a)} />
+        <div className="lg:col-span-1 flex flex-col space-y-4 overflow-y-auto">
+          {/* Response Priorities Panel */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex flex-col shadow-sm">
+             <div className="flex items-center gap-2 mb-3 border-b border-slate-800 pb-2">
+                <ShieldAlert className="w-4 h-4 text-red-500" />
+                <h3 className="text-[12px] font-bold text-white uppercase tracking-wider">Response Priorities</h3>
+             </div>
+             
+             <div className="space-y-2">
+                <div className="p-2 bg-slate-950 border-l-2 border-red-500 rounded text-xs space-y-1 cursor-pointer hover:bg-slate-800">
+                   <div className="flex justify-between items-center font-bold text-white">
+                      <span>North Ridge</span>
+                      <span className="text-red-400 text-[10px]">HIGH</span>
+                   </div>
+                   <div className="text-slate-400 text-[10px]">Heavy rainfall, road exposure, nearby settlement</div>
+                </div>
+
+                <div className="p-2 bg-slate-950 border-l-2 border-red-500 rounded text-xs space-y-1 cursor-pointer hover:bg-slate-800">
+                   <div className="flex justify-between items-center font-bold text-white">
+                      <span>Hill Cut Area</span>
+                      <span className="text-red-400 text-[10px]">HIGH</span>
+                   </div>
+                   <div className="text-slate-400 text-[10px]">Slope instability, recent field report</div>
+                </div>
+
+                <div className="p-2 bg-slate-950 border-l-2 border-amber-500 rounded text-xs space-y-1 cursor-pointer hover:bg-slate-800">
+                   <div className="flex justify-between items-center font-bold text-white">
+                      <span>River Basin</span>
+                      <span className="text-amber-400 text-[10px]">MEDIUM</span>
+                   </div>
+                   <div className="text-slate-400 text-[10px]">Elevated water risk</div>
+                </div>
+             </div>
+          </div>
+          
+          <div className="flex-1 min-h-0">
+             <AlertPanel onSelectAlert={(a) => setSelectedAlertForModal(a)} />
+          </div>
         </div>
       </div>
 

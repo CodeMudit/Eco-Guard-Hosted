@@ -25,6 +25,66 @@
   }
 }
 
+@layer utilities {
+  /* GLOBAL CONTRAST FIX: Prevent low-contrast text on dark themes */
+  .text-slate-500, .text-slate-600 {
+    color: #94a3b8 !important; /* Forces to text-slate-400 equivalent in dark mode */
+  }
+
+  /* PART 2: KILL "AI-GENERATED" LOOK (Institutional Redesign) */
+  
+  /* Strip Glassmorphism */
+  .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur, .backdrop-blur-lg, .glass-panel {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Solidify Panels (Remove opacity from dark slate backgrounds) */
+  .bg-slate-900\/90, .bg-slate-900\/80, .bg-slate-900\/60, .bg-slate-900\/50, .bg-slate-950\/80, .bg-slate-950\/60, .bg-slate-950\/40 {
+    background-color: var(--color-bg-card, #0f172a) !important;
+  }
+
+  /* Reduce Heavy Shadows */
+  .shadow-xl, .shadow-2xl, .shadow-emerald-950\/50, .shadow-emerald-950\/60, .shadow-purple-950\/50, .shadow-indigo-950\/50, .shadow-blue-900\/40 {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3) !important;
+  }
+
+  /* Tighten Spacing (Map large paddings to smaller ones globally for higher density) */
+  .p-6, .p-5 {
+    padding: 1rem !important; /* Equivalent to p-4 */
+  }
+
+  /* Subdue Neon Accents (Tone down 400s to 600s/500s) */
+  .text-emerald-400 { color: #059669 !important; } /* emerald-600 */
+  .text-amber-400 { color: #d97706 !important; } /* amber-600 */
+  .text-cyan-400 { color: #0284c7 !important; } /* sky-600 */
+  
+  .border-emerald-500\/30, .border-emerald-500\/40, .border-emerald-500\/50 {
+    border-color: #047857 !important; /* emerald-700 solid */
+  }
+
+  /* PART 5: HIGH CONTRAST ACCESSIBILITY MODE */
+  .high-contrast {
+    --color-bg-primary: #000000 !important;
+    --color-bg-card: #000000 !important;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+  }
+  
+  .high-contrast .bg-slate-900, .high-contrast .bg-slate-950, .high-contrast .bg-slate-800 {
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+  }
+  
+  .high-contrast .text-slate-100, .high-contrast .text-slate-200, .high-contrast .text-slate-300, .high-contrast .text-slate-400, .high-contrast .text-slate-500 {
+    color: #ffff00 !important; /* High visibility yellow */
+  }
+  
+  .high-contrast .text-white {
+    color: #ffffff !important;
+  }
+}
+
 /* Custom Leaflet Dark & Styled Map Overlays */
 .leaflet-container {
   width: 100%;
@@ -160,12 +220,13 @@
 .light-theme .text-slate-100,
 .light-theme .text-slate-200,
 .light-theme .text-slate-300 {
-  color: #0f172a !important;
+  color: #0f172a !important; /* text-slate-900 */
 }
 
 .light-theme .text-slate-400,
-.light-theme .text-slate-500 {
-  color: #475569 !important;
+.light-theme .text-slate-500,
+.light-theme .text-slate-600 {
+  color: #1e293b !important; /* text-slate-800 to ensure readability */
 }
 
 .light-theme .placeholder-slate-500::placeholder {

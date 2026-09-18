@@ -19,19 +19,19 @@ import {
 
 export const Sidebar = () => {
   const { activePage, setActivePage, lastRefreshedAt, computedRisk } = useApp();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   const navItems = [
-    { id: "home", label: t("Home", "Home"), icon: LayoutDashboard },
-    { id: "nodes", label: t("Nodes", "Nodes"), icon: Radio },
-    { id: "ml-predictions", label: t("ML Predictions", "ML Predictions"), icon: BrainCircuit },
-    { id: "api-data", label: t("API Data", "API Data"), icon: CloudSun },
-    { id: "analytics", label: t("Analytics", "Analytics"), icon: LineChart },
-    { id: "alerts", label: t("Alerts", "Alerts"), icon: Bell },
-    { id: "reports", label: t("Reports", "Reports"), icon: FileText },
-    { id: "hazards", label: t("Hazard Zones", "Hazard Zones"), icon: ShieldAlert },
-    { id: "settings", label: t("Settings", "Settings"), icon: Settings },
+    { id: "home", label: t("Command Center", "Command Center"), icon: LayoutDashboard },
+    { id: "nodes", label: t("Field Sensors", "Field Sensors"), icon: Radio },
+    { id: "ml-predictions", label: t("Risk Analysis", "Risk Analysis"), icon: BrainCircuit },
+    { id: "api-data", label: t("Environmental Data", "Environmental Data"), icon: CloudSun },
+    { id: "analytics", label: t("Trends & History", "Trends & History"), icon: LineChart },
+    { id: "alerts", label: t("Alerts & Advisories", "Alerts & Advisories"), icon: Bell },
+    { id: "reports", label: t("Field Reports", "Field Reports"), icon: FileText },
+    { id: "hazards", label: t("Hazard & Terrain", "Hazard & Terrain"), icon: ShieldAlert },
+    { id: "settings", label: t("System Settings", "System Settings"), icon: Settings },
   ];
 
   return (
@@ -49,9 +49,9 @@ export const Sidebar = () => {
             </div>
             {!collapsed && (
               <div className="truncate">
-                <h1 className="font-bold text-lg text-white leading-tight tracking-tight">EcoWatch</h1>
+                <h1 className="font-bold text-lg text-white leading-tight tracking-tight">{t("EcoWatch NER")}</h1>
                 <p className="text-[10px] text-blue-400 font-medium tracking-wide uppercase truncate">
-                  NER-DRR
+                  {t("Disaster Risk Decision Support")}
                 </p>
               </div>
             )}
@@ -118,9 +118,22 @@ export const Sidebar = () => {
                       : "text-emerald-400"
                   }`}
                 >
-                  {computedRisk.overallLevel} RISK
+                  {t(computedRisk.overallLevel)} RISK
                 </span>
               </div>
+            </div>
+
+            <div className="flex justify-between items-center bg-slate-900 border border-slate-800 rounded px-2 py-1 mt-2">
+                <span className="text-[10px] text-slate-400 font-bold">LANG</span>
+                <select 
+                    value={i18n.language} 
+                    onChange={(e) => i18n.changeLanguage(e.target.value)}
+                    className="bg-transparent text-[10px] text-white font-bold outline-none cursor-pointer"
+                >
+                    <option value="en" className="bg-slate-900">EN</option>
+                    <option value="hi" className="bg-slate-900">HI</option>
+                    <option value="as" className="bg-slate-900">AS</option>
+                </select>
             </div>
           </div>
         ) : (

@@ -80,6 +80,12 @@ export const AppProvider = ({ children }) => {
             document.documentElement.classList.remove("light-theme");
             document.documentElement.classList.add("dark");
         }
+        
+        if (contrast > 1) {
+            document.documentElement.classList.add("high-contrast");
+        } else {
+            document.documentElement.classList.remove("high-contrast");
+        }
     }, [theme, fontSize, contrast]);
 
     // Toast Helper
@@ -99,37 +105,7 @@ export const AppProvider = ({ children }) => {
     useEffect(() => {
         if (!API_URL) return;
 
-        // Fetch Nodes
-        fetch(`${API_URL}/api/nodes`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-                    setNodes(json.data);
-                }
-            })
-            .catch(err => console.warn("Failed to fetch /api/nodes:", err.message));
-
-        // Fetch Alerts
-        fetch(`${API_URL}/api/alerts`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && Array.isArray(json.data)) {
-                    setAlerts(json.data);
-                }
-            })
-            .catch(err => console.warn("Failed to fetch /api/alerts:", err.message));
-
-        // Fetch Hazards
-        fetch(`${API_URL}/api/hazards`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && Array.isArray(json.data)) {
-                    setHazards(json.data);
-                }
-            })
-            .catch(err => console.warn("Failed to fetch /api/hazards:", err.message));
-
-        // Fetch Reports
+        // Fetch Reports (if supported by backend, else fallback to Firebase)
         fetch(`${API_URL}/api/reports`)
             .then(res => res.json())
             .then(json => {
@@ -148,16 +124,6 @@ export const AppProvider = ({ children }) => {
                 }
             })
             .catch(err => console.warn("Failed to fetch /api/weather/current:", err.message));
-
-        // Fetch Thresholds
-        fetch(`${API_URL}/api/settings/thresholds`)
-            .then(res => res.json())
-            .then(json => {
-                if (json.success && json.data) {
-                    setThresholds(prev => ({ ...prev, ...json.data }));
-                }
-            })
-            .catch(err => console.warn("Failed to fetch /api/settings/thresholds:", err.message));
     }, []);
 
     // Real-time Socket.IO Connection
@@ -231,12 +197,8 @@ export const AppProvider = ({ children }) => {
             const timeStr = now.toLocaleTimeString();
             setLastRefreshedAt(timeStr);
 
-            // If backend API URL is configured, trigger re-fetch of current nodes & weather
+            // If backend API URL is configured, trigger re-fetch of current weather
             if (API_URL) {
-                fetch(`${API_URL}/api/nodes`)
-                    .then(r => r.json())
-                    .then(d => d.success && d.data && setNodes(d.data))
-                    .catch(() => {});
                 fetch(`${API_URL}/api/weather/current`)
                     .then(r => r.json())
                     .then(d => d.success && d.data && setApiData(d.data))

@@ -207,17 +207,26 @@ export const ReportsPage = () => {
                </div>
                
                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Submitter Type</label>
-                    <select value={form.submitterType} onChange={e => setForm({...form, submitterType: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none">
-                       <option>Field Official</option>
-                       <option>Citizen</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-300 block mb-1">Name/Contact (Opt)</label>
-                    <input type="text" value={form.reportedBy} onChange={e => setForm({...form, reportedBy: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none" />
-                  </div>
+                   <div>
+                     <label className="text-xs font-semibold text-slate-300 block mb-1">Submitter Type</label>
+                     <select value={form.submitterType} onChange={e => setForm({...form, submitterType: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option>Field Official</option>
+                        <option>Citizen</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="text-xs font-semibold text-slate-300 block mb-1">Severity</label>
+                     <select value={form.severity} onChange={e => setForm({...form, severity: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="CRITICAL">Critical</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="text-xs font-semibold text-slate-300 block mb-1">Name (Opt)</label>
+                     <input type="text" value={form.reportedBy} onChange={e => setForm({...form, reportedBy: e.target.value})} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none" />
+                   </div>
                </div>
 
                <div>

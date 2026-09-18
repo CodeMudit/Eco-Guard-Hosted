@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, LayersControl, GeoJSON, LayerGroup, Rectangle } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap, useMapEvents, GeoJSON, LayerGroup, Rectangle } from "react-leaflet";
 import { useApp } from "../../context/AppContext";
 import { createNodeIcon } from "../../utils/leafletIcons";
-import { LiveWindLayer } from "./LiveWindLayer";
+import { WindFieldLayer } from "./WindFieldLayer";
+import { MapLayerPanel } from "./MapLayerPanel";
 import { MapLegend } from "./MapLegend";
 import { HeatmapLayer } from "./HeatmapLayer";
+import { MapLocationInspector } from "./MapLocationInspector";
 import { nerStateBoundaries, nerRoadNetwork, nerRiskHeatmapPoints, nerVillages } from "../../data/mockGeoData";
 import { historicalLandslides } from "../../data/mockHistoricalLandslides";
 import {
@@ -38,14 +40,52 @@ const MapController = ({ target }) => {
   return null;
 };
 
-// Heatmap Overlay (using actual leaflet.heat wrapper)
-// Replaced with HeatmapLayer component.
+// Click Event Listener
+const MapClickHandler = ({ onMapClick }) => {
+  useMapEvents({
+    click(e) {
+      if (onMapClick) onMapClick(e.latlng.lat, e.latlng.lng);
+    }
+  });
+  return null;
+};
 
-export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
+export const MapPanel = ({ onSelectNode, onSelectHazard, onCreateReport, onOpen3D }) => {
   const { nodes, apiData, hazards, selectedNodeId, mapTarget, setSelectedNodeId, setSelectedHazardId, riskScore, reports } = useApp();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [inspectorLocation, setInspectorLocation] = useState(null);
+
+  const [activeLayers, setActiveLayers] = useState({
+    satellite: true,
+    terrain: false,
+    dark: false,
+    wind: false,
+    ndvi: false,
+    moisture: false,
+    hazards: true,
+    historical: false,
+    reports: true,
+    roads: true,
+    villages: true,
+    sensors: true
+  });
+
+  const toggleLayer = (id, isRadio = false) => {
+    setActiveLayers(prev => {
+        const next = { ...prev };
+        if (isRadio) {
+            if (id === 'satellite' || id === 'terrain' || id === 'dark') {
+                next.satellite = false;
+                next.terrain = false;
+                next.dark = false;
+            }
+        }
+        next[id] = !prev[id];
+        return next;
+    });
+  };
 
   const defaultCenter = [25.268, 91.738];
   const defaultZoom = 13;
@@ -113,43 +153,74 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
         className="w-full h-full z-0 font-sans"
       >
         <MapController target={mapTarget} />
+        <MapClickHandler onMapClick={(lat, lng) => setInspectorLocation({ lat, lng })} />
 
-        <LayersControl position="topright">
-          {/* Base Layers */}
-          <LayersControl.BaseLayer checked name="Satellite Imagery (ISRO/Bhuvan-style feed)">
-            <TileLayer
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              attribution="Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Terrain / OSM Base">
-            <TileLayer
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              attribution="&copy; OpenStreetMap contributors"
-            />
-          </LayersControl.BaseLayer>
-          <LayersControl.BaseLayer name="Administrative (Dark)">
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution="&copy; <a href='https://carto.com/'>CARTO</a>"
-            />
-          </LayersControl.BaseLayer>
+        {/* Custom Layer Manager Panel */}
+        <MapLayerPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
 
-          {/* Overlays */}
-          <LayersControl.Overlay checked name="State/District Boundaries">
-            <GeoJSON data={nerStateBoundaries} style={adminStyle} />
-          </LayersControl.Overlay>
+        {/* Base Layers */}
+        {activeLayers.satellite && (
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution="Tiles &copy; Esri &mdash; Sentinel-2/ISRO Bhuvan Proxy"
+          />
+        )}
+        {activeLayers.terrain && (
+          <TileLayer
+            url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenTopoMap contributors"
+          />
+        )}
+        {activeLayers.dark && (
+          <TileLayer
+            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            attribution="&copy; <a href='https://carto.com/'>CARTO</a>"
+          />
+        )}
 
-          <LayersControl.Overlay checked name="Road Network">
-            <GeoJSON data={nerRoadNetwork} style={roadStyle} />
-          </LayersControl.Overlay>
+        {/* Environment Layers */}
+        <WindFieldLayer active={activeLayers.wind} />
 
-          <LayersControl.Overlay checked name="AI Risk Heatmap">
-            <HeatmapLayer points={nerRiskHeatmapPoints} />
-          </LayersControl.Overlay>
+        {activeLayers.ndvi && (
+          <Rectangle bounds={[[24.5, 89.5], [29.5, 97.5]]} pathOptions={{ color: '#16a34a', weight: 0, fillColor: '#16a34a', fillOpacity: 0.15, className: 'mix-blend-multiply' }} />
+        )}
+        {activeLayers.moisture && (
+          <Rectangle bounds={[[24.5, 89.5], [29.5, 97.5]]} pathOptions={{ color: '#0284c7', weight: 0, fillColor: '#0284c7', fillOpacity: 0.15, className: 'mix-blend-multiply' }} />
+        )}
 
-          <LayersControl.Overlay checked name="Village Infrastructure">
-            <LayerGroup>
+        {/* Overlays always on for context */}
+        <GeoJSON data={nerStateBoundaries} style={adminStyle} />
+
+        {/* Infrastructure Layers */}
+        {activeLayers.roads && (
+          <GeoJSON 
+            data={nerRoadNetwork} 
+            style={roadStyle} 
+            onEachFeature={(feature, layer) => {
+              layer.on({
+                click: (e) => {
+                  L.DomEvent.stopPropagation(e); // Stop map click so location inspector doesn't open
+                  const popupContent = `
+                    <div class="p-2 text-xs font-sans">
+                       <div class="font-bold text-white mb-1 border-b border-slate-700 pb-1">ROAD INTELLIGENCE</div>
+                       <div>Status: <span class="font-bold ${feature.properties.status === 'Open' ? 'text-emerald-400' : 'text-red-400'}">${feature.properties.status}</span></div>
+                       <div class="text-slate-300 mt-1">Hazard Risk: HIGH</div>
+                       <div class="text-slate-400 text-[10px] mt-1">Proximity: 2.1km to nearest slope failure</div>
+                    </div>
+                  `;
+                  layer.bindPopup(popupContent).openPopup();
+                }
+              });
+            }}
+          />
+        )}
+
+        {activeLayers.hazards && (
+          <HeatmapLayer points={nerRiskHeatmapPoints} />
+        )}
+
+        {activeLayers.villages && (
+          <LayerGroup>
                {nerVillages.features.map((v, i) => (
                   <Marker key={i} position={[v.geometry.coordinates[1], v.geometry.coordinates[0]]} icon={villageIcon}>
                      <Popup>
@@ -164,11 +235,11 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
                   </Marker>
                ))}
             </LayerGroup>
-          </LayersControl.Overlay>
+        )}
 
-          <LayersControl.Overlay checked name="Hazard Zones">
-            <LayerGroup>
-              {hazards.map((hz) => hz.coordinates && (
+        {activeLayers.hazards && (
+          <LayerGroup>
+            {hazards.map((hz) => hz.coordinates && (
                 <Polygon
                   key={hz.id}
                   positions={hz.coordinates}
@@ -204,11 +275,11 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
                 </Polygon>
               ))}
             </LayerGroup>
-          </LayersControl.Overlay>
+        )}
 
-          <LayersControl.Overlay checked name="Reported Incidents">
-            <LayerGroup>
-              {reports?.map((rep) => rep.coordinates && (
+        {activeLayers.reports && (
+          <LayerGroup>
+            {reports?.map((rep) => rep.coordinates && (
                 <Marker key={rep.id} position={rep.coordinates} icon={createNodeIcon(rep.title, false)}>
                   <Popup>
                      <div className="p-2 space-y-1 text-xs font-sans text-slate-200">
@@ -221,11 +292,11 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
                 </Marker>
               ))}
             </LayerGroup>
-          </LayersControl.Overlay>
+        )}
 
-          <LayersControl.Overlay name="Historical Landslides">
-            <LayerGroup>
-              {historicalLandslides.map((hist) => (
+        {activeLayers.historical && (
+          <LayerGroup>
+            {historicalLandslides.map((hist) => (
                 <Marker key={hist.id} position={hist.coordinates} icon={createNodeIcon('Historical', false)}>
                   <Popup>
                     <div className="p-2 space-y-1 text-xs font-sans text-slate-200">
@@ -238,11 +309,11 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
                 </Marker>
               ))}
             </LayerGroup>
-          </LayersControl.Overlay>
+        )}
 
-          <LayersControl.Overlay checked name="Sensor Nodes">
-            <LayerGroup>
-              {/* Node 1 Marker */}
+        {activeLayers.sensors && (
+          <LayerGroup>
+            {/* Node 1 Marker */}
               {node1 && (
                 <Marker
                   position={[node1.lat, node1.lng]}
@@ -361,10 +432,14 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
                 </Marker>
               )}
             </LayerGroup>
-          </LayersControl.Overlay>
-        </LayersControl>
+        )}
 
-        <LiveWindLayer />
+        {/* Selected Location Marker (drawn on top) */}
+        {inspectorLocation && (
+          <Marker position={[inspectorLocation.lat, inspectorLocation.lng]} icon={createNodeIcon('Selected', false)}>
+            <Popup>Selected Location for Analysis</Popup>
+          </Marker>
+        )}
 
         {/* Side-by-side comparison simulated using a secondary TileLayer in a rectangle if active */}
         {/* We use a crude but effective visual comparison without external plugins for the demo */}
@@ -382,6 +457,17 @@ export const MapPanel = ({ onSelectNode, onSelectHazard }) => {
 
       {/* Overlay Legend */}
       <MapLegend />
+
+      {/* Location Inspector Panel */}
+      {inspectorLocation && (
+        <MapLocationInspector 
+          lat={inspectorLocation.lat} 
+          lng={inspectorLocation.lng} 
+          onClose={() => setInspectorLocation(null)}
+          onCreateReport={() => onCreateReport && onCreateReport(inspectorLocation.lat, inspectorLocation.lng)}
+          onOpen3D={() => onOpen3D && onOpen3D(inspectorLocation.lat, inspectorLocation.lng)}
+        />
+      )}
     </div>
   );
 };

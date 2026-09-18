@@ -1,80 +1,149 @@
-import React from 'react';
-import { Mountain, Signal, AlertTriangle } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import Map, { Source, Layer, NavigationControl, Marker } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Mountain, MapPin, Wind, Droplets, ShieldAlert, X } from 'lucide-react';
+import { fetchLocationIntelligence } from "../../services/locationDataService";
+import { calculateRiskForPoint } from "../../utils/riskCalculator";
 
-export const Terrain3DViewer = ({ hazardZone }) => {
+export const Terrain3DViewer = ({ centerLat, centerLng, onClose }) => {
+  const center = [centerLat || 25.268, centerLng || 91.738]; 
+
+  const [locationData, setLocationData] = useState(null);
+  const [riskInfo, setRiskInfo] = useState(null);
+  const [exaggeration, setExaggeration] = useState(1.5);
+
+  useEffect(() => {
+      let isMounted = true;
+      const load = async () => {
+          const data = await fetchLocationIntelligence(center[0], center[1]);
+          if(isMounted) {
+              setLocationData(data);
+              setRiskInfo(calculateRiskForPoint(data, center[0], center[1]));
+          }
+      };
+      load();
+      return () => isMounted = false;
+  }, [center[0], center[1]]);
+  
+  // AWS Terrarium DEM tiles for 3D elevation
+  const terrainSource = useMemo(() => ({
+    type: 'raster-dem',
+    tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+    encoding: 'terrarium',
+    tileSize: 256,
+    maxzoom: 14
+  }), []);
+
+  // Standard OpenStreetMap base style
+  const mapStyle = {
+    version: 8,
+    sources: {
+      osm: {
+        type: 'raster',
+        tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize: 256,
+        attribution: '&copy; OpenStreetMap'
+      },
+      terrainSource: terrainSource
+    },
+    layers: [
+      {
+        id: 'osm-layer',
+        type: 'raster',
+        source: 'osm',
+        minzoom: 0,
+        maxzoom: 19
+      }
+    ],
+    terrain: {
+      source: 'terrainSource',
+      exaggeration: exaggeration
+    }
+  };
+
   return (
-    <div className="w-full h-full min-h-[300px] bg-slate-950 rounded-3xl border border-slate-800 p-6 flex flex-col relative overflow-hidden shadow-2xl">
-      <div className="z-10 relative">
-        <h3 className="text-white font-bold flex items-center gap-2">
-          <Mountain className="w-5 h-5 text-emerald-400" />
-          3D Terrain Profile Analysis
-        </h3>
-        <p className="text-xs text-slate-400 mt-1">
-          {hazardZone ? `Focus: ${hazardZone.name}` : "Regional Elevation Model"}
-        </p>
-      </div>
-
-      {/* Isometric 3D Container */}
-      <div className="flex-1 relative flex items-center justify-center mt-4 [perspective:1000px]">
+    <div className="w-full h-full bg-slate-900 rounded-2xl border border-slate-800 flex overflow-hidden">
+      {/* 3D Map Area (Left) */}
+      <div className="flex-1 relative flex flex-col">
+        <div className="p-3 border-b border-slate-800 bg-slate-950 flex items-center justify-between z-10 shadow-md">
+          <div className="flex items-center gap-4">
+              <h3 className="text-white font-bold text-sm flex items-center gap-2">
+                <Mountain className="w-4 h-4 text-emerald-500" />
+                3D Terrain Risk View
+              </h3>
+              <div className="flex gap-2">
+                  <button onClick={() => setExaggeration(1.0)} className={`text-[10px] px-2 py-1 rounded ${exaggeration === 1.0 ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400'}`}>1.0x</button>
+                  <button onClick={() => setExaggeration(1.5)} className={`text-[10px] px-2 py-1 rounded ${exaggeration === 1.5 ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400'}`}>1.5x</button>
+                  <button onClick={() => setExaggeration(2.0)} className={`text-[10px] px-2 py-1 rounded ${exaggeration === 2.0 ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-400'}`}>2.0x</button>
+              </div>
+          </div>
+          <button onClick={onClose} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1 rounded text-xs font-bold transition-colors">
+              Return to 2D Map
+          </button>
+        </div>
         
-        {/* CSS Isometric Grid representing terrain */}
-        <div 
-          className="relative w-64 h-64 border border-slate-700 bg-slate-900/50 rounded-xl"
-          style={{
-            transform: 'rotateX(60deg) rotateZ(-45deg)',
-            transformStyle: 'preserve-3d',
-            boxShadow: '-20px 20px 50px rgba(0,0,0,0.5)',
-            backgroundImage: 'linear-gradient(rgba(51, 65, 85, 0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(51, 65, 85, 0.5) 1px, transparent 1px)',
-            backgroundSize: '20px 20px'
-          }}
-        >
-          {/* Base Layer */}
-          <div className="absolute inset-0 bg-emerald-500/10" style={{ transform: 'translateZ(-1px)' }}></div>
-
-          {/* Elevation Block 1 (Hill) */}
-          <div 
-            className="absolute top-10 left-10 w-20 h-20 bg-emerald-600/40 border border-emerald-500/50 backdrop-blur-sm transition-all duration-1000"
-            style={{ transform: 'translateZ(40px)', boxShadow: '-10px 10px 20px rgba(0,0,0,0.3)' }}
+        <div className="flex-1 relative">
+          <Map
+            initialViewState={{
+              longitude: center[1],
+              latitude: center[0],
+              zoom: 13,
+              pitch: 65,
+              bearing: 30
+            }}
+            mapStyle={mapStyle}
+            interactive={true}
           >
-            <div className="absolute -top-6 -left-6 transform rotateX(-90deg) rotateY(0deg) origin-bottom" style={{ transformStyle: 'preserve-3d' }}>
-              <span className="text-[10px] font-mono text-emerald-400 font-bold bg-slate-900/80 px-1 rounded border border-slate-700 inline-block transform rotateZ(45deg)">+850m</span>
-            </div>
-            {/* Sensor Node Indicator on Hill */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-               <div className="w-4 h-4 rounded-full bg-blue-500 animate-pulse flex items-center justify-center shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <Signal className="w-2 h-2 text-white transform rotateZ(45deg)" />
-               </div>
-            </div>
-          </div>
-
-          {/* Elevation Block 2 (Risk Zone) */}
-          <div 
-            className="absolute bottom-10 right-10 w-24 h-16 bg-red-500/30 border border-red-500/50 backdrop-blur-sm transition-all duration-1000"
-            style={{ transform: 'translateZ(20px)', boxShadow: '-5px 5px 15px rgba(0,0,0,0.4)' }}
-          >
-             <div className="absolute -top-6 -right-10 transform rotateX(-90deg) rotateY(0deg) origin-bottom" style={{ transformStyle: 'preserve-3d' }}>
-              <span className="text-[10px] font-mono text-red-400 font-bold bg-slate-900/80 px-1 rounded border border-slate-700 flex items-center gap-1 transform rotateZ(45deg)">
-                 <AlertTriangle className="w-2.5 h-2.5" /> High Risk
-              </span>
-            </div>
-          </div>
-
-          {/* River Basin */}
-          <div 
-            className="absolute bottom-5 left-5 w-40 h-8 bg-cyan-500/20 border border-cyan-500/30 backdrop-blur-sm"
-            style={{ transform: 'translateZ(5px)' }}
-          >
-          </div>
+            <NavigationControl position="top-right" visualizePitch={true} />
+            <Marker longitude={center[1]} latitude={center[0]} anchor="bottom">
+                <div className="w-6 h-6 bg-red-500 rounded-full border-2 border-white flex items-center justify-center animate-bounce shadow-xl">
+                    <ShieldAlert className="w-3 h-3 text-white" />
+                </div>
+            </Marker>
+          </Map>
         </div>
-
       </div>
 
-      <div className="z-10 mt-4 border-t border-slate-800 pt-3">
-        <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-           <span>Model: NESAC-DEM-v3</span>
-           <span>Res: 10m/px</span>
-           <span className="text-emerald-400">Sync: Live</span>
-        </div>
+      {/* Terrain Risk Explanation (Right) */}
+      <div className="w-80 bg-slate-950 border-l border-slate-800 p-4 flex flex-col gap-4 overflow-y-auto">
+          <h3 className="text-white font-bold text-sm tracking-wide border-b border-slate-800 pb-2">Why this area is at risk</h3>
+          
+          <div className="space-y-4">
+              <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Terrain & Elevation</span>
+                  <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+                      High susceptibility slope zone. Elevated relief creates momentum corridors for debris flows. 
+                      Elevation context highlights vulnerability to saturated topsoil failure.
+                  </div>
+              </div>
+
+              {locationData && (
+                  <>
+                      <div className="space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Meteorological Forcing</span>
+                          <div className="bg-slate-900 p-2 rounded-xl border border-slate-800 text-xs text-slate-300 grid grid-cols-2 gap-2">
+                              <div>Rain (24h): <span className="font-bold text-blue-400">{locationData.hydrology.rain24h.value} mm</span></div>
+                              <div>Soil Moist: <span className="font-bold text-blue-400">{locationData.hydrology.soilMoisture.value}%</span></div>
+                          </div>
+                      </div>
+                  </>
+              )}
+
+              {riskInfo && (
+                  <div className="space-y-1 pt-2 border-t border-slate-800">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-2">Risk Fusion Output</span>
+                      <div className="flex items-end justify-between bg-slate-900 p-3 rounded-xl border border-slate-800">
+                          <div>
+                              <div className="text-3xl font-black text-white leading-none">{riskInfo.score}</div>
+                              <div className="text-[10px] text-slate-400 mt-1">/ 100</div>
+                          </div>
+                          <div className={`text-sm font-bold uppercase tracking-wider ${riskInfo.level === 'HIGH' || riskInfo.level === 'EXTREME' ? 'text-red-400' : 'text-amber-400'}`}>
+                              {riskInfo.level} RISK
+                          </div>
+                      </div>
+                  </div>
+              )}
+          </div>
       </div>
     </div>
   );

@@ -172,3 +172,54 @@ export const getRiskColor = (level) => {
       return { bg: "bg-emerald-500/20", border: "border-emerald-500/50", text: "text-emerald-400", badge: "bg-emerald-500 text-white" };
   }
 };
+
+/**
+ * Sprint 4: Deterministic Risk Fusion Engine for a specific geospatial point.
+ * Weights: Rainfall 35%, Soil Moisture 25%, Terrain/Slope 20%, Historical 12%, Infrastructure 8%
+ */
+export const calculateRiskForPoint = (locationData, lat, lng) => {
+    if (!locationData || locationData.status === 'ERROR') return null;
+
+    // Extract values safely
+    const rain24h = parseFloat(locationData.hydrology?.rain24h?.value || 0);
+    const soilMoisture = parseFloat(locationData.hydrology?.soilMoisture?.value || 30);
+    
+    // Normalize Rainfall (0-100) - Cap at 150mm for max risk
+    const rainScore = Math.min(100, (rain24h / 150) * 100);
+    
+    // Normalize Soil Moisture (0-100) - Cap at 80% for max risk
+    const soilScore = Math.min(100, (soilMoisture / 80) * 100);
+
+    // Mock/Derived values for Terrain, Historical, Infrastructure based on Lat/Lng hashes
+    // In a real scenario, these come from spatial intersections
+    const hash = Math.abs(Math.sin(lat) * Math.cos(lng) * 10000);
+    const terrainScore = 40 + (hash % 40); // 40-80 range
+    const historicalScore = 20 + ((hash * 2) % 60); // 20-80 range
+    const infraScore = 50 + ((hash * 3) % 40); // 50-90 range
+
+    // Apply Sprint 4 Fusion Weights
+    const totalScore = Math.round(
+        (rainScore * 0.35) +
+        (soilScore * 0.25) +
+        (terrainScore * 0.20) +
+        (historicalScore * 0.12) +
+        (infraScore * 0.08)
+    );
+
+    let riskLevel = "LOW";
+    if (totalScore >= 75) riskLevel = "EXTREME";
+    else if (totalScore >= 60) riskLevel = "HIGH";
+    else if (totalScore >= 40) riskLevel = "MEDIUM";
+
+    return {
+        score: totalScore,
+        level: riskLevel,
+        factors: [
+            { name: "Rainfall (24h)", contribution: `${Math.round(rainScore * 0.35)} pts` },
+            { name: "Soil Saturation", contribution: `${Math.round(soilScore * 0.25)} pts` },
+            { name: "Terrain Susceptibility", contribution: `${Math.round(terrainScore * 0.20)} pts` },
+            { name: "Historical Frequency", contribution: `${Math.round(historicalScore * 0.12)} pts` },
+            { name: "Infrastructure Exposure", contribution: `${Math.round(infraScore * 0.08)} pts` }
+        ]
+    };
+};

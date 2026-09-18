@@ -19,42 +19,61 @@ router.post('/score', (req, res) => {
     }
 });
 
-// Simulated True ML Predictor Endpoint
+// ML Interface for Risk Fusion Engine (Sprint 4)
+// Ready to be swapped with XGBoost/RandomForest in future
 router.post('/predict', (req, res) => {
     try {
-        const { lat, lng, district } = req.body;
+        const { 
+            latitude, longitude, 
+            rainfall, rainfall24h, rainfall72h, 
+            soilMoisture, elevation, 
+            terrainRisk, historicalFrequency, 
+            roadExposure, sensorRisk 
+        } = req.body;
         
-        // Mock ML Inference
-        const isHighRiskZone = (lat > 25.26 && lat < 25.30 && lng > 91.70 && lng < 91.75);
-        const baseScore = isHighRiskZone ? 75 : 30;
+        // Normalize Rainfall (0-100) - Cap at 150mm for max risk
+        const rainScore = Math.min(100, ((rainfall24h || 0) / 150) * 100);
         
-        // Add some jitter for realism
-        const finalScore = Math.min(100, Math.max(0, baseScore + (Math.random() * 15 - 5)));
+        // Normalize Soil Moisture (0-100) - Cap at 80% for max risk
+        const soilScore = Math.min(100, ((soilMoisture || 30) / 80) * 100);
+
+        // Calculate scores from provided metrics or defaults
+        const tScore = terrainRisk || 50;
+        const hScore = historicalFrequency || 30;
+        const iScore = roadExposure || 50;
+
+        // Apply Sprint 4 Fusion Weights
+        // Rainfall 35%, Soil Moisture 25%, Terrain/Slope 20%, Historical 12%, Infrastructure 8%
+        const finalScore = Math.round(
+            (rainScore * 0.35) +
+            (soilScore * 0.25) +
+            (tScore * 0.20) +
+            (hScore * 0.12) +
+            (iScore * 0.08)
+        );
         
         let category = "LOW";
-        if (finalScore > 80) category = "EXTREME";
-        else if (finalScore > 65) category = "HIGH";
-        else if (finalScore > 45) category = "MODERATE";
-        
-        const confidence = (85 + Math.random() * 10).toFixed(1);
+        if (finalScore >= 75) category = "EXTREME";
+        else if (finalScore >= 60) category = "HIGH";
+        else if (finalScore >= 40) category = "MEDIUM";
         
         const factors = [
-            { factor: "Rainfall Intensity", weight: isHighRiskZone ? 0.45 : 0.20 },
-            { factor: "Soil Saturation", weight: isHighRiskZone ? 0.30 : 0.15 },
-            { factor: "Slope Gradient", weight: 0.15 },
-            { factor: "Historical Frequency", weight: 0.10 }
-        ].sort((a, b) => b.weight - a.weight);
+            { factor: "Rainfall Intensity", contribution: `${Math.round(rainScore * 0.35)} pts` },
+            { factor: "Soil Saturation", contribution: `${Math.round(soilScore * 0.25)} pts` },
+            { factor: "Terrain Susceptibility", contribution: `${Math.round(tScore * 0.20)} pts` },
+            { factor: "Historical Frequency", contribution: `${Math.round(hScore * 0.12)} pts` },
+            { factor: "Infrastructure Exposure", contribution: `${Math.round(iScore * 0.08)} pts` }
+        ];
 
         res.json({
             success: true,
             data: {
-                location: district || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-                score: Math.round(finalScore),
-                category,
-                confidence: `${confidence}%`,
-                model: "NESAC-RF-Ensemble-v2",
-                timestamp: new Date().toISOString(),
-                contributingFactors: factors
+                score: finalScore,
+                level: category,
+                factors: factors,
+                model: "EcoWatch Risk Fusion Engine (Deterministic)",
+                modelStatus: "DERIVED PROTOTYPE",
+                timestamp: new Date().toISOString()
             }
         });
     } catch (err) {
